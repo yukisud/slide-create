@@ -124,6 +124,34 @@
    ```
    ※ `w-[1280px] h-[720px]` と `overflow-hidden` は必須。
 
+■ レイヤー構造ルール（重なり順の安定化）
+- **背景アイコン**: `z-0`（最背面）+ `absolute`
+- **メインコンテンツ**: `z-10` + `relative` でラップする
+- z-indexを使う要素は必ず `position: relative` または `absolute` を指定
+
+```html
+<!-- 正しい構造例 -->
+<div class="slide relative ...">
+    <div class="absolute ... z-0"><!-- 背景アイコン --></div>
+    <div class="z-10 relative px-16 w-full"><!-- メインコンテンツ --></div>
+</div>
+```
+
+■ 書き出し互換性ルール（html2canvas対応）
+以下のCSSプロパティは画像書き出し時にズレや未反映が発生するため、使用を制限する：
+
+| プロパティ | 制限 | 代替案 |
+|-----------|------|--------|
+| `backdrop-filter` | **使用禁止** | 背景色で代用 (`bg-white/90`等) |
+| `box-shadow` | `shadow-sm` `shadow-md` まで | 複雑な影は避ける |
+| `filter: blur()` | **使用禁止** | opacity で代用 |
+| `transform` | `rotate` `scale` のみ | 3D変換は避ける |
+| `gradient` | 2色までの `linear-gradient` | 複雑なグラデーション禁止 |
+| `clip-path` | **使用禁止** | border-radius で代用 |
+| `mask-image` | **使用禁止** | - |
+
+※これらを守ることで、サーバーなしでもブラウザ書き出しで高精度な出力が可能。
+
 ---
 
 【4. タイポグラフィ設定】
@@ -247,7 +275,15 @@
 * ☐ 巨大アイコンのクラスは `text-[800px]` になっているか
 * ☐ 数字バッジは `flex items-center justify-center` を持っているか
 * ☐ スライド枠に `overflow-hidden` があるか
-* ☐ 全スライドに背景アイコン（z-0）があるか
+* ☐ 全スライドに背景アイコン（z-0 + absolute）があるか
+* ☐ メインコンテンツが `z-10 relative` でラップされているか
+
+■ 書き出し互換性チェック（必須）
+* ☐ backdrop-filter を使っていないか
+* ☐ filter: blur() を使っていないか
+* ☐ clip-path / mask-image を使っていないか
+* ☐ box-shadow は shadow-sm/md 程度か
+* ☐ gradient は2色までのlinear-gradientか
 
 ■ 番号チェック（必須）
 * ☐ タイトルスライド（1枚目）に番号バッジがないか
