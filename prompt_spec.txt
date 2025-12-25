@@ -127,13 +127,17 @@
 ■ レイヤー構造ルール（重なり順の安定化）
 - **背景アイコン**: `z-0`（最背面）+ `absolute`
 - **メインコンテンツ**: `z-10` + `relative` でラップする
+- **独立したカード/ボックス**: `relative z-10` を個別に付与（特に `bg-white/90` 等の半透明背景使用時は必須）
 - z-indexを使う要素は必ず `position: relative` または `absolute` を指定
 
 ```html
 <!-- 正しい構造例 -->
 <div class="slide relative ...">
     <div class="absolute ... z-0"><!-- 背景アイコン --></div>
-    <div class="z-10 relative px-16 w-full"><!-- メインコンテンツ --></div>
+    <div class="z-10 relative px-16 w-full">
+        <!-- メインコンテンツ -->
+        <div class="bg-white/90 ... relative z-10"><!-- カードも z-10 --></div>
+    </div>
 </div>
 ```
 
@@ -277,6 +281,7 @@
 * ☐ スライド枠に `overflow-hidden` があるか
 * ☐ 全スライドに背景アイコン（z-0 + absolute）があるか
 * ☐ メインコンテンツが `z-10 relative` でラップされているか
+* ☐ 半透明背景のカード/ボックスに `relative z-10` があるか
 
 ■ 書き出し互換性チェック（必須）
 * ☐ backdrop-filter を使っていないか
