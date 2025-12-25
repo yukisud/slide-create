@@ -278,6 +278,43 @@ async function renderSlideCanvas(slide) {
   // 4. レイアウト計算のために少し待機
   await new Promise(resolve => setTimeout(resolve, 100));
 
+  // 5. Flexbox中央揃えを固定値に変換（onclone前に実DOMで処理）
+  clone.querySelectorAll('*').forEach(el => {
+    const computed = window.getComputedStyle(el);
+    const display = computed.display;
+
+    if (display === 'flex' || display === 'inline-flex') {
+      const justifyContent = computed.justifyContent;
+      const alignItems = computed.alignItems;
+      const flexDirection = computed.flexDirection;
+
+      // 子要素の実際の位置を計算して固定
+      Array.from(el.children).forEach(child => {
+        const childRect = child.getBoundingClientRect();
+        const parentRect = el.getBoundingClientRect();
+
+        // flex-column + justify-center の場合（垂直中央）
+        if (flexDirection === 'column' && justifyContent === 'center') {
+          const offsetTop = childRect.top - parentRect.top;
+          if (offsetTop > 0) {
+            child.style.marginTop = `${offsetTop}px`;
+          }
+        }
+
+        // flex-row + items-center の場合（垂直中央揃えの横並び）
+        // → アイコン+テキストなど、これは維持してOK（横並びの中央揃え）
+      });
+
+      // justify-center を解除（marginTop で位置固定済み）
+      if (flexDirection === 'column' && justifyContent === 'center') {
+        el.style.justifyContent = 'flex-start';
+      }
+    }
+  });
+
+  // 6. さらに少し待機してスタイル適用を確定
+  await new Promise(resolve => setTimeout(resolve, 50));
+
   try {
     // 3. html2canvasでレンダリング (復旧)
     const canvas = await html2canvas(container, {
@@ -293,7 +330,7 @@ async function renderSlideCanvas(slide) {
       backgroundColor: '#ffffff',
       logging: false,
       onclone: (clonedDoc) => {
-        console.log('onclone executed: v18 (flex centering fix)');
+        console.log('onclone executed: v19 (pre-processed flex fix)');
         clonedDoc.defaultView.scrollTo(0, 0);
         const clonedBody = clonedDoc.body;
         clonedBody.style.margin = '0';
@@ -318,44 +355,7 @@ async function renderSlideCanvas(slide) {
           el.style.verticalAlign = 'middle';
         });
 
-        // 3. Flexbox中央揃えを固定値に変換（ズレ防止の核心）
-        clonedDoc.querySelectorAll('.slide *').forEach(el => {
-          const computed = clonedDoc.defaultView.getComputedStyle(el);
-          const display = computed.display;
-
-          // Flex コンテナの場合
-          if (display === 'flex' || display === 'inline-flex') {
-            const justifyContent = computed.justifyContent;
-            const alignItems = computed.alignItems;
-            const flexDirection = computed.flexDirection;
-
-            // 子要素の位置を計算して固定
-            const children = Array.from(el.children);
-            children.forEach(child => {
-              const childComputed = clonedDoc.defaultView.getComputedStyle(child);
-              const childRect = child.getBoundingClientRect();
-              const parentRect = el.getBoundingClientRect();
-
-              // 垂直中央揃えの場合（flex-col + justify-center または flex-row + items-center）
-              if ((flexDirection === 'column' && justifyContent === 'center') ||
-                  (flexDirection === 'row' && alignItems === 'center')) {
-                // 現在の位置を計算してpaddingで固定
-                const offsetTop = childRect.top - parentRect.top;
-                if (offsetTop > 0 && child.style.marginTop === '') {
-                  child.style.marginTop = `${offsetTop}px`;
-                }
-              }
-            });
-
-            // justify-center/items-centerをflex-startに変更
-            if (justifyContent === 'center') {
-              el.style.justifyContent = 'flex-start';
-            }
-            if (alignItems === 'center' && flexDirection === 'column') {
-              el.style.alignItems = 'flex-start';
-            }
-          }
-        });
+        // 3. Flexbox修正は html2canvas 呼び出し前に実DOM上で処理済み
       }
     });
     return canvas;
