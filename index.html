@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HTML Slide Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body class="app-root">
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-title">HTML Slide Builder</div>
+      <div class="brand-subtitle">HTMLを貼り付けてプレビュー・編集・書き出し</div>
+    </div>
+    <div class="header-actions">
+      <button id="copyPromptBtn" class="btn btn-ghost">プロンプトをコピー</button>
+      <button id="openGeminiBtn" class="btn btn-primary">Geminiを開く</button>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <section class="panel panel-left">
+      <div class="panel-section">
+        <div class="panel-title">入力HTML <span class="help-tip" data-tip="生成されたHTMLを貼り付けてプレビューします。"></span></div>
+        <textarea id="htmlInput" class="input-textarea" placeholder="生成されたHTMLを貼り付け"></textarea>
+        <div class="panel-row">
+          <button id="renderBtn" class="btn btn-primary">プレビュー生成</button>
+          <button id="clearBtn" class="btn btn-ghost">クリア</button>
+        </div>
+        <div class="panel-note">class="slide" の要素を抽出して並べます。scriptタグは自動で除外されます。</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">編集・見た目 <span class="help-tip" data-tip="編集モードをONにして、プレビュー内の文字を直接編集できます。"></span></div>
+        <div class="control-grid">
+          <label class="control">
+            <span>編集モード</span>
+            <input type="checkbox" id="editToggle" />
+          </label>
+          <label class="control">
+            <span>プレビュー縮尺</span>
+            <input type="range" id="previewScale" min="0.5" max="1" step="0.05" value="0.75" />
+          </label>
+        </div>
+        <div class="panel-note">書き出しは常に 1280×720 の等倍です。</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">選択テキストの調整 <span class="help-tip" data-tip="プレビュー内の文字を選択すると、右上にツールが表示されます。"></span>
+        </div>
+        <div class="panel-note">文字を選択 → 右上のツールでサイズ/色を調整。</div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">Gemini設定 <span class="help-tip" data-tip="Geminiを開く前にURLとプロンプトを確認します。"></span></div>
+        <label class="control">
+          <span>Gemini URL</span>
+          <input type="text" id="geminiUrl" value="https://gemini.google.com/" />
+        </label>
+        <div class="panel-row">
+          <button id="saveGeminiBtn" class="btn btn-ghost">URL保存</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">書き出し <span class="help-tip" data-tip="プレビューと同じ見た目で画像/PDFを出力します。"></span></div>
+        <div class="panel-row">
+          <button id="exportImagesBtn" class="btn btn-primary">画像を一括DL</button>
+          <button id="exportPdfBtn" class="btn btn-ghost">PDF一括</button>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-title">ローカル起動 <span class="help-tip" data-tip="初回だけ簡単セットアップを行います。"></span></div>
+        <div class="panel-note">GitHub Pagesからダウンロードして、1クリックでローカル起動できます。</div>
+        <div class="panel-row">
+          <a class="btn btn-ghost" href="start-mac.command" download>Mac用 start.command</a>
+          <a class="btn btn-ghost" href="start-win.bat" download>Windows用 start.bat</a>
+          <a class="btn btn-ghost" href="LOCAL_SETUP.md" target="_blank" rel="noopener">手順を見る</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel panel-right">
+      <div class="panel-title">プレビュー</div>
+      <div id="preview" class="preview"></div>
+      <div id="selectionToolbar" class="selection-toolbar">
+        <label class="toolbar-control">
+          <span>Size</span>
+          <input type="number" id="toolbarFontSize" min="10" max="96" step="1" value="16" />
+        </label>
+
+        <div class="toolbar-swatches" id="toolbarSwatches"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="geminiModal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-title">Gemini初期設定ガイド</div>
+      <div class="modal-text">以下の手順に従って、Geminiをスライド生成用に設定します。</div>
+      <ol class="modal-steps">
+        <li><strong>① プロンプトをコピー</strong><br>下のボタンを押して、スライド生成用のプロンプトをコピーします。</li>
+        <li><strong>② Geminiを開く</strong><br>ボタンを押してGeminiを新しいタブで開きます。</li>
+        <li><strong>③ Gemを作成</strong><br>Geminiで新しいGemを作成し、名前を入力します（例：「スライド生成AI」）。</li>
+        <li><strong>④ カスタム指示を設定</strong><br>「カスタム指示」欄に、①でコピーしたプロンプトを貼り付けて保存します。</li>
+        <li><strong>⑤ URLを取得</strong><br>作成したGemの「共有」ボタンをクリック → 共有設定 → 「リンクをコピー」を選択します。</li>
+      </ol>
+      <div class="panel-row">
+        <button id="modalCopyPromptBtn" class="btn btn-primary">① プロンプトをコピー</button>
+        <button id="modalOpenGeminiBtn" class="btn btn-ghost">② Geminiを開く</button>
+      </div>
+      <label class="control">
+        <span>⑤ コピーしたGemini URLを貼り付け</span>
+        <input type="text" id="modalGeminiUrl" placeholder="https://gemini.google.com/app/..." />
+      </label>
+      <div class="panel-row">
+        <button id="modalSaveGeminiBtn" class="btn btn-primary">保存して開始</button>
+        <button id="modalCloseBtn" class="btn btn-ghost">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="errorModal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-title">HTMLエラー</div>
+      <div class="modal-text">Geminiに修正を依頼できます。</div>
+      <div class="error-body">
+        <div id="errorMessage" class="error-message"></div>
+        <textarea id="errorPrompt" class="error-textarea" readonly></textarea>
+      </div>
+      <div class="panel-row">
+        <button id="copyErrorPromptBtn" class="btn btn-primary">修正プロンプトをコピー</button>
+        <button id="closeErrorModalBtn" class="btn btn-ghost">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">コピーしました</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <!-- Loading Modal -->
+  <div id="loadingModal" class="loading-modal" aria-hidden="true">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <p id="loadingText" class="loading-text">準備中...</p>
+      <div class="loading-bar-container">
+        <div id="loadingBar" class="loading-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
