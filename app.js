@@ -278,32 +278,28 @@ async function renderSlideCanvas(slide) {
   // 4. レイアウト計算のために少し待機
   await new Promise(resolve => setTimeout(resolve, 100));
 
-  // 5. Flexbox中央揃えの位置を計算してdata属性に保存（oncloneで使用）
-  clone.querySelectorAll('*').forEach((el, index) => {
-    const computed = window.getComputedStyle(el);
-    const display = computed.display;
+  // 5. スライド直下のflex修正のみ（ネストされた要素は触らない）
+  const slideEl = clone.querySelector('.slide');
+  if (slideEl) {
+    const computed = window.getComputedStyle(slideEl);
+    if (computed.display === 'flex' && computed.flexDirection === 'column') {
+      // スライドの直接の子要素（コンテンツラッパー）の位置を保存
+      Array.from(slideEl.children).forEach(child => {
+        // absolute要素（背景アイコン）はスキップ
+        const childComputed = window.getComputedStyle(child);
+        if (childComputed.position === 'absolute') return;
 
-    if (display === 'flex' || display === 'inline-flex') {
-      const justifyContent = computed.justifyContent;
-      const flexDirection = computed.flexDirection;
+        const childRect = child.getBoundingClientRect();
+        const parentRect = slideEl.getBoundingClientRect();
+        const offsetTop = childRect.top - parentRect.top;
 
-      // flex-column + justify-center の場合
-      if (flexDirection === 'column' && justifyContent === 'center') {
-        el.dataset.flexFix = 'column-center';
+        // 位置をdata属性に保存
+        child.dataset.flexFixTop = `${offsetTop}`;
+      });
 
-        // 子要素の位置を計算して保存
-        Array.from(el.children).forEach((child, childIndex) => {
-          const childRect = child.getBoundingClientRect();
-          const parentRect = el.getBoundingClientRect();
-          const offsetTop = childRect.top - parentRect.top;
-
-          if (offsetTop > 0) {
-            child.dataset.flexFixMargin = `${offsetTop}`;
-          }
-        });
-      }
+      slideEl.dataset.flexFix = 'slide';
     }
-  });
+  }
 
   try {
     // 3. html2canvasでレンダリング (復旧)
@@ -320,7 +316,7 @@ async function renderSlideCanvas(slide) {
       backgroundColor: '#ffffff',
       logging: false,
       onclone: (clonedDoc) => {
-        console.log('onclone executed: v20 (data attribute flex fix)');
+        console.log('onclone executed: v21 (slide-only flex fix)');
         clonedDoc.defaultView.scrollTo(0, 0);
         const clonedBody = clonedDoc.body;
         clonedBody.style.margin = '0';
@@ -345,15 +341,17 @@ async function renderSlideCanvas(slide) {
           el.style.verticalAlign = 'middle';
         });
 
-        // 3. data属性からFlexbox修正を適用
-        clonedDoc.querySelectorAll('[data-flex-fix="column-center"]').forEach(el => {
-          el.style.justifyContent = 'flex-start';
+        // 3. .slide要素のflex修正を適用（ネストは触らない）
+        clonedDoc.querySelectorAll('[data-flex-fix="slide"]').forEach(slide => {
+          slide.style.justifyContent = 'flex-start';
+          slide.style.alignItems = 'stretch';
         });
 
-        clonedDoc.querySelectorAll('[data-flex-fix-margin]').forEach(el => {
-          const margin = el.dataset.flexFixMargin;
-          if (margin) {
-            el.style.marginTop = `${margin}px`;
+        // 4. スライドの直接子要素の位置を固定
+        clonedDoc.querySelectorAll('[data-flex-fix-top]').forEach(el => {
+          const top = el.dataset.flexFixTop;
+          if (top && parseFloat(top) > 0) {
+            el.style.marginTop = `${top}px`;
           }
         });
       }
