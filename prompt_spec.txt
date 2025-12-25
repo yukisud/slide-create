@@ -32,7 +32,7 @@
 - フォント：Google Fonts「Noto Sans JP」
 - アイコン：Font Awesome（CDN版）
 - レスポンシブ対応：不要
-- **justify-center で上下中央寄せ**。
+- **`justify-center`と`my-auto`は使用禁止**（書き出し時にズレる原因）。代わりにコンテンツラッパーで`pt-20`の固定パディングを使用。
 - bodyのbackground-color: #fff;
 - slideのshadowはつけない。hover Actionもつけない。
 
@@ -79,15 +79,16 @@
 
 ■ コンテンツ密度（適正範囲）
 
-| 項目 | 推奨 |
-|------|------|
-| 要点・箇条書き | 3〜6項目 |
-| カード内テキスト | 2〜4行 |
-| カード | 2〜4個 |
-| グリッド列 | 2〜3列 |
-| テーブル行 | 3〜6行 |
+| 項目 | 推奨 | 注意 |
+|------|------|------|
+| 要点・箇条書き | 3〜6項目 | 各項目に説明文（1〜2行）を必ずつける |
+| カード内テキスト | 2〜4行 | 見出しだけのカードは禁止 |
+| カード | 2〜4個 | 内容の詳細さを優先 |
+| グリッド列 | 2〜3列 | 各セルに十分な情報を入れる |
+| テーブル行 | 3〜6行 | ヘッダー+データ行で構成 |
 
 ※スライド全体の **縦方向60〜80%** を使い切ること。余白が多すぎる場合は情報を追加するか要素を大きくする。
+※**簡素すぎるスライドは禁止**。見出しと箇条書きだけでなく、具体的な説明・数値・例を含めること。
 
 ---
 
@@ -99,11 +100,11 @@
 
 1. **巨大アイコン（背景装飾）**
    ```html
-   <div class="absolute -bottom-20 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
+   <div class="absolute -bottom-16 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
      <i class="fab fa-[アイコン名] text-[800px] text-gray-100 opacity-50 leading-none"></i>
    </div>
    ```
-   ※必ず `div.absolute` でラップし、クラス `text-[800px]` を使用すること。
+   ※必ず `div.absolute` でラップし、`-bottom-16`を使用。アイコンの上部がスライド内に見える位置。
 
 2. **番号付き見出し（セクションタイトル）**
    ```html
@@ -118,25 +119,44 @@
 
 3. **スライド枠（共通）**
    ```html
-   <div class="slide relative bg-white w-[1280px] h-[720px] border-8 border-[テーマ色] flex flex-col justify-center overflow-hidden">
+   <div class="slide relative bg-white w-[1280px] h-[720px] border-8 border-[テーマ色] flex flex-col overflow-hidden">
      <!-- コンテンツ -->
    </div>
    ```
    ※ `w-[1280px] h-[720px]` と `overflow-hidden` は必須。
+   ※ **`justify-center`と`my-auto`は使用禁止**（書き出し時にズレる原因）。代わりにコンテンツラッパーで`pt-20`を使う。
 
 ■ レイヤー構造ルール（重なり順の安定化）
-- **背景アイコン**: `z-0`（最背面）+ `absolute`
-- **メインコンテンツ**: `z-10 relative px-16 w-full` でラップする（**w-full必須**）
+- **背景アイコン**: `z-0`（最背面）+ `absolute` + `-bottom-16`
+- **メインコンテンツ**: `z-10 relative px-16 pt-20 w-full` でラップする（**固定pt-20必須**）
 - **独立したカード/ボックス**: `relative z-10` を個別に付与（特に `bg-white/90` 等の半透明背景使用時は必須）
 - z-indexを使う要素は必ず `position: relative` または `absolute` を指定
 
+■ 位置安定化ルール（ズレ防止の核心）
+- **`justify-center`は使用禁止** → 書き出し時にコンテンツが下にズレる原因
+- **`my-auto`も使用禁止** → margin autoは書き出し時に正しく計算されないことがある
+- **`items-center`での垂直中央も禁止** → カード内でも同様にズレる
+- **代わりに固定パディング`pt-20`を使用** → 常に同じ位置から開始される
+- スライド枠は `flex flex-col` のみ（`justify-center`なし）
+- 720pxの高さで上から80px（pt-20）開始すると、視覚的にほぼ中央になる
+
+■ Flex使用ルール（重要）
+| 用途 | OK | NG |
+|------|----|----|
+| 横並び（アイコン+テキスト） | `flex items-center` | - |
+| カード内の垂直中央 | `pt-4 pb-4`（パディング） | `flex items-center`で縦中央 |
+| 複数カード横並び | `grid grid-cols-3 gap-4` | `flex justify-around` |
+| ボックス内コンテンツ | ブロック要素 + padding | flex + centering |
+
+※**flexは横並び専用**。縦の配置は必ずパディングで制御する。
+
 ```html
-<!-- 正しい構造例 -->
-<div class="slide relative bg-white w-[1280px] h-[720px] border-8 border-[テーマ色] flex flex-col justify-center overflow-hidden">
-    <div class="absolute -bottom-20 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
+<!-- 正しい構造例（justify-center禁止、固定パディングで配置） -->
+<div class="slide relative bg-white w-[1280px] h-[720px] border-8 border-[テーマ色] flex flex-col overflow-hidden">
+    <div class="absolute -bottom-16 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
         <i class="fab fa-[アイコン] text-[800px] text-gray-100 opacity-50 leading-none"></i>
     </div>
-    <div class="z-10 relative px-16 w-full">
+    <div class="z-10 relative px-16 pt-20 w-full">
         <!-- メインコンテンツ（スライドの60-80%を使い切る） -->
         <div class="bg-white/90 ... relative z-10"><!-- 半透明カードも z-10 --></div>
     </div>
@@ -278,11 +298,13 @@
 
 ■ 構造チェック（必須）
 * ☐ 必須コンポーネント構造（巨大アイコン・番号付き見出し・スライド枠）を守っているか
-* ☐ 巨大アイコンのクラスは `text-[800px]` になっているか
+* ☐ 巨大アイコンのクラスは `text-[800px]` かつ `-bottom-16` になっているか
 * ☐ 数字バッジは `flex items-center justify-center` を持っているか
 * ☐ スライド枠に `overflow-hidden` があるか
+* ☐ **スライド枠に`justify-center`を使っていないか**（禁止）
+* ☐ **カード/ボックス内で`items-center`による垂直中央をしていないか**（paddingで代用）
 * ☐ 全スライドに背景アイコン（z-0 + absolute）があるか
-* ☐ メインコンテンツが `z-10 relative px-16 w-full` でラップされているか
+* ☐ メインコンテンツが `z-10 relative px-16 pt-20 w-full` でラップされているか（固定pt-20必須）
 * ☐ 半透明背景のカード/ボックスに `relative z-10` があるか
 
 ■ 書き出し互換性チェック（必須）
@@ -301,8 +323,9 @@
 ■ コンテンツ密度チェック（必須）
 * ☐ スライドの縦方向60〜80%を使い切っているか
 * ☐ 余白が多すぎないか（情報追加または要素拡大で調整）
-* ☐ 箇条書きは3〜6項目か
-* ☐ カードは2〜4個か
+* ☐ **内容が簡素すぎないか**（各スライドに具体的な情報・説明文を含めること）
+* ☐ 箇条書きは3〜6項目で、各項目に説明文があるか
+* ☐ カードは2〜4個で、中身が1行だけになっていないか
 
 ■ デザインチェック
 * ☐ W3C HTML5準拠
