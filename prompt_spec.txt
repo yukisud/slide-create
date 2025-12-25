@@ -1,0 +1,351 @@
+以下の設計ルールに基づき、提供された記事タイトルとセクション情報から、HTML5 + Tailwind CSSベースのプレゼンテーションスライドを生成してください。
+
+---
+
+【0. ライブラリ読み込み（必須）】
+<head> 内で以下を **必ず** 読み込むこと。
+
+```html
+<!-- Tailwind CSS v3 (JIT + arbitrary values) -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Google Fonts: Noto Sans JP -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+<!-- Font Awesome -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+```
+
+【1. 基本要件定義】
+
+■ コンテンツ要件
+- 提供された見出し（h1とh2）ごとに1スライド作成：記事の冒頭（タイトル）と見出しタイトル冒頭にh2と記載あるor##が記載あるもののみスライド作成。
+- タイトル、h2見出しについては変更せず、そのまま出力すること
+- 内容を要点2〜3個に要約
+- 表・図解・アイコン・ビジュアル・グラフ要素を組み合わせる
+- 情報は5秒以内で理解できる構成にする
+- 外枠をテーマ色でつける
+
+■ 技術要件
+- HTML5 + CSS3 + Tailwind CSS（CDN利用）
+- 固定サイズ：1280px × 720px（横幅 w-[1280px] を固定し、高さは min-h-[720px]。内容が多い場合のみ自動伸長。）
+- フォント：Google Fonts「Noto Sans JP」
+- アイコン：Font Awesome（CDN版）
+- レスポンシブ対応：不要
+- **justify-center で上下中央寄せ**。
+- bodyのbackground-color: #fff;
+- slideのshadowはつけない。hover Actionもつけない。
+
+■ ユーザビリティ要件
+- 最小フォントサイズ：14px以上
+- コントラスト比：4.5:1以上
+- 階層構造を明確化
+- 読み取りにかかる時間は3秒以内
+
+---
+
+【2. テーマ別アクセントカラー定義】
+背景はすべて `bg-white` に固定し、**アクセントとしてテーマカラーを以下に準拠して使用**：
+
+| テーマ分類         | キーワード例                 | Tailwind適用例                                        |
+|--------------------|------------------------------|-------------------------------------------------------|
+| Business           | マーケティング、デザイン、分析・経営・数字 | `text-[#002f5d]` `border-[#036ad1]` `bg-[#036ad1]/10` |
+| Tech               | AI・ChatGPT・IT              | `text-[#1a237e]` `border-[#3949ab]` `bg-[#5c6bc0]/10` |
+| X                  | X                            | `text-[#000000]` `border-[#000000]` `bg-[#000000]/10` |
+| Creative           | Instagram・デザイン          | `text-[#8e24aa]` `border-[#ab47bc]` `bg-[#ba68c8]/10` |
+| Finance            | 分析・経営・数字             | `text-[#002f5d]` `border-[#036ad1]` `bg-[#036ad1]/10` |
+| Google             | SEO、MEO,Map、Google、広告、SEMなど | `text-[#4285F4]` `border-[#EA4335]` `bg-[#FBBC05]/10` |
+| 動画               | Youtube、動画                | `text-[#FF0000]` `border-[#FF0000]` `bg-[#FF0000]/10` |
+
+※ `/10` は背景やカード要素で透明度10%の色を使用するTailwindの記法
+
+---
+
+【2.5. スライドタイプ定義と番号付与ルール】
+
+■ スライドタイプ（3種類のみ）
+
+| タイプ | 用途 | 番号 | 背景アイコン |
+|--------|------|------|--------------|
+| A. タイトルスライド | 1枚目（記事タイトル） | なし | あり（必須） |
+| B. コンテンツスライド | h2見出しごと | あり（自動付与） | あり（必須） |
+| C. まとめスライド | 最終スライド | なし | あり（必須） |
+
+■ 番号の自動付与ルール（重要）
+- **タイトルスライド**: 番号バッジなし
+- **コンテンツスライド**: h2の出現順に「1, 2, 3...」と自動付与
+- **まとめスライド**: 番号バッジなし（「まとめ」というテキストのみ）
+- 番号は必ず連番とし、飛び番号や重複は禁止
+
+■ コンテンツ密度制限（はみ出し防止）
+
+| 項目 | 上限 |
+|------|------|
+| 要点・箇条書き | 最大5項目 |
+| 本文テキスト | 最大4行（1行40文字目安） |
+| カード | 最大3個 |
+| グリッド列 | 最大3列 |
+| テーブル行 | 最大5行 |
+
+※上限を超える場合は、情報を分割して複数スライドにするか、優先度の低い項目を削除すること。
+
+---
+
+【3. スライド構造（HTML） - 自由レイアウト + 厳格コンポーネント】
+スライドのレイアウト（2カラム、3カラム、グリッド、中央配置など）は、コンテンツの内容に合わせて**自由に構成して構いません**。
+ただし、**以下の「コンポーネント」を使用する場合は、必ず指定のHTML構造を守ってください**。これらを守らないと書き出し時にズレが生じます。
+
+■ 必須コンポーネント構造（変更禁止）
+
+1. **巨大アイコン（背景装飾）**
+   ```html
+   <div class="absolute -bottom-20 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
+     <i class="fab fa-[アイコン名] text-[800px] text-gray-100 opacity-50 leading-none"></i>
+   </div>
+   ```
+   ※必ず `div.absolute` でラップし、クラス `text-[800px]` を使用すること。
+
+2. **番号付き見出し（セクションタイトル）**
+   ```html
+   <h1 class="text-[40px] font-bold text-[テーマ色] mb-10 flex items-center">
+     <span class="bg-[テーマ色] text-white w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-4">
+       {{番号}}
+     </span>
+     {{タイトル}}
+   </h1>
+   ```
+   ※必ず `h1.flex` の中に `span.rounded-full.flex` を入れる構造にすること。
+
+3. **スライド枠（共通）**
+   ```html
+   <div class="slide relative bg-white w-[1280px] h-[720px] border-8 border-[テーマ色] flex flex-col justify-center overflow-hidden">
+     <!-- コンテンツ -->
+   </div>
+   ```
+   ※ `w-[1280px] h-[720px]` と `overflow-hidden` は必須。
+
+■ レイヤー構造ルール（重なり順の安定化）
+- **背景アイコン**: `z-0`（最背面）+ `absolute`
+- **メインコンテンツ**: `z-10` + `relative` でラップする
+- **独立したカード/ボックス**: `relative z-10` を個別に付与（特に `bg-white/90` 等の半透明背景使用時は必須）
+- z-indexを使う要素は必ず `position: relative` または `absolute` を指定
+
+```html
+<!-- 正しい構造例 -->
+<div class="slide relative ...">
+    <div class="absolute ... z-0"><!-- 背景アイコン --></div>
+    <div class="z-10 relative px-16 w-full">
+        <!-- メインコンテンツ -->
+        <div class="bg-white/90 ... relative z-10"><!-- カードも z-10 --></div>
+    </div>
+</div>
+```
+
+■ 書き出し互換性ルール（html2canvas対応）
+以下のCSSプロパティは画像書き出し時にズレや未反映が発生するため、使用を制限する：
+
+| プロパティ | 制限 | 代替案 |
+|-----------|------|--------|
+| `backdrop-filter` | **使用禁止** | 背景色で代用 (`bg-white/90`等) |
+| `box-shadow` | `shadow-sm` `shadow-md` まで | 複雑な影は避ける |
+| `filter: blur()` | **使用禁止** | opacity で代用 |
+| `transform` | `rotate` `scale` のみ | 3D変換は避ける |
+| `gradient` | 2色までの `linear-gradient` | 複雑なグラデーション禁止 |
+| `clip-path` | **使用禁止** | border-radius で代用 |
+| `mask-image` | **使用禁止** | - |
+
+※これらを守ることで、サーバーなしでもブラウザ書き出しで高精度な出力が可能。
+
+---
+
+【4. タイポグラフィ設定】
+
+* `font-family`: `'Noto Sans JP', sans-serif`
+
+* 階層サイズ：
+
+| 種別 | クラス例 | 備考 |
+|------|---------|------|
+| 巨大アイコン | `text-[800px]` | 固定 |
+| h1 (タイトル) | `text-[50px] font-extrabold` または `text-[80px]` | slide 1 |
+| h1 (番号付) | `text-[40px] font-bold` | 各セクション |
+| h2 | `text-[30px] font-semibold border-l-8 border-[テーマ色] pl-6` | |
+| h3 | `text-[24px] font-medium` | カード内見出し |
+| 本文 | `text-lg` (16px) | 最小 14px |
+
+* スペーシング：
+  * `line-height: 1.6`（本文）、`1.2`（見出し）
+  * `letter-spacing: 0.05em`
+
+---
+
+【5. コンポーネント規則（推奨パターン）】
+レイアウトは自由ですが、以下のコンポーネントを活用してリッチなデザインにしてください。
+
+1. 情報カード (.info-card)
+```html
+<div class="info-card border-2 border-[テーマ色] p-6 bg-[テーマ色]/5 rounded-lg mb-6">
+  <h3 class="text-[24px] font-bold text-[テーマ色] mb-3 flex items-center">
+    <i class="fas fa-info-circle mr-3"></i>
+    {{タイトル}}
+  </h3>
+  <p class="text-lg text-gray-700 leading-relaxed">{{本文}}</p>
+</div>
+```
+
+2. 比較カード (.comparison-card)
+```html
+<div class="comparison-card grid grid-cols-2 gap-8 mt-6">
+  <!-- 比較要素を自由に配置 -->
+</div>
+```
+
+3. チェックリスト (.feature-item)
+```html
+<ul class="space-y-4 mt-4">
+  <li class="feature-item flex items-start p-4 bg-gray-50 rounded-lg border border-gray-100">
+    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-[テーマ色]/10 flex items-center justify-center mr-4">
+      <i class="fas fa-check text-[テーマ色] text-sm"></i>
+    </div>
+    <div>
+      <span class="block text-lg font-bold text-gray-800 mb-1">{{項目名}}</span>
+      <span class="block text-base text-gray-600">{{説明文}}</span>
+    </div>
+  </li>
+</ul>
+```
+
+4. ステップフロー (.step-item)
+```html
+<div class="flex items-center justify-between mt-8 relative">
+  <!-- 矢印線やステップ要素を配置 -->
+</div>
+```
+
+5. 強調カード (.highlight-card)
+```html
+<div class="highlight-card bg-gradient-to-br from-[テーマ色]/10 to-transparent border-l-8 border-[テーマ色] p-6 rounded-r-lg shadow-sm my-6">
+  <!-- 強調コンテンツ -->
+</div>
+```
+
+* **巨大アイコン**: 必ず `div.absolute` でラップし、`pointer-events-none` を付与。クラスは `text-[800px]` を使用。
+* **数字バッジ**: 必ず `span.bg-[テーマ色].rounded-full.flex.items-center.justify-center` の構造を使用。`div`ではなく`span`推奨だが、`flex`を指定すること。
+* **スライド枠**: `w-[1280px] h-[720px]` (min-hではなくh固定)、`overflow-hidden` を必ず付与。
+
+---
+
+【6. データビジュアル表現】
+
+* テーブル：
+  * 最大4列、`border-[テーマ色]/30` の薄い線
+  * ヘッダーに `bg-[rgba(0,0,0,0.05)]`
+
+* バーグラフ：幅を Tailwind `w-[%]` で表現
+* 円、棒、折れ線グラフについても視覚的に表現
+
+* アイコン数値表示例：
+  ```html
+  <div class="flex items-center gap-2">
+    <i class="fas fa-chart-line text-[テーマ色] text-xl"></i>
+    <span class="text-lg font-semibold">85%</span>
+  </div>
+  ```
+
+---
+
+【7. アクセシビリティ要件】
+
+* コントラスト比 4.5:1以上
+* 最小文字サイズ：14px
+* 色だけに依存しない構造（アイコン + テキスト）
+* `h1` は1スライドに1つのみ
+
+---
+
+【8. リソース要件】
+
+* Tailwind CSS（CDN）
+* Font Awesome（CDN）
+* Google Fonts Noto Sans JP（CDN）
+* 画像は極力SVG（最大500KB）、Lazy Load不要
+
+---
+
+【9. 品質チェックリスト】
+
+■ 構造チェック（必須）
+* ☐ 必須コンポーネント構造（巨大アイコン・番号付き見出し・スライド枠）を守っているか
+* ☐ 巨大アイコンのクラスは `text-[800px]` になっているか
+* ☐ 数字バッジは `flex items-center justify-center` を持っているか
+* ☐ スライド枠に `overflow-hidden` があるか
+* ☐ 全スライドに背景アイコン（z-0 + absolute）があるか
+* ☐ メインコンテンツが `z-10 relative` でラップされているか
+* ☐ 半透明背景のカード/ボックスに `relative z-10` があるか
+
+■ 書き出し互換性チェック（必須）
+* ☐ backdrop-filter を使っていないか
+* ☐ filter: blur() を使っていないか
+* ☐ clip-path / mask-image を使っていないか
+* ☐ box-shadow は shadow-sm/md 程度か
+* ☐ gradient は2色までのlinear-gradientか
+
+■ 番号チェック（必須）
+* ☐ タイトルスライド（1枚目）に番号バッジがないか
+* ☐ コンテンツスライドの番号が1から連番になっているか
+* ☐ まとめスライドに番号バッジがないか
+* ☐ 番号の飛び・重複がないか
+
+■ コンテンツ密度チェック（必須）
+* ☐ 箇条書きは最大5項目以内か
+* ☐ 本文テキストは最大4行以内か
+* ☐ カードは最大3個以内か
+* ☐ グリッド列は最大3列以内か
+
+■ デザインチェック
+* ☐ W3C HTML5準拠
+* ☐ コントラスト・フォントサイズ確認
+* ☐ 見出し階層構造正しいか
+* ☐ Tailwindクラスで装飾されているか
+* ☐ テーマカラーがアクセントに反映されているか
+* ☐ 背景は白で統一されているか
+
+---
+
+【10. 出力内容】
+上記の必須コンポーネント構造のHTML構造を厳格に守り、コンテンツを流し込んで出力してください。
+構造を勝手に簡略化したり、クラスを減らしたりしないでください。
+
+* `<div class="slide">...</div>` 構造で出力
+* 1見出し = 1スライド
+* スライド数は提供されたセクションの数と同数
+* 各スライドには：
+  * 白背景（`bg-white`）
+  * 太枠 (`border-8`) + テーマ色
+  * テーマカラー: タイトル・枠線・左ライン・カード枠・アイコン・薄背景
+  * 見出し
+  * 2〜3項目のリスト・表・グラフ（表示コンテンツが少ないようであれば適宜調整）
+  * アイコン（Font Awesome）
+  * アクセントカラー適用済み
+
+* タイトルスライドデザインルール
+  * 背景装飾: テーマを象徴するFont Awesomeアイコンを1つ選び、巨大化させます (text-[800px])。
+    そのアイコンを、スライドの右下に少し傾けて (rotate-[-15deg])、薄いグレー (text-gray-100) で背景のように配置します。
+  * メインタイトル: タイトルを**3つの意味の塊（パート）**に分けます。
+    各パートのフォントサイズ、太さ、色を大胆に変更し、視覚的な階層とインパクトを生み出します。
+    最も重要なキーワードが一番目立つようにスタイリングします。
+  * サブタイトル: スライドのテーマカラーで作成した帯の中に、白文字で力強く配置します。
+
+---
+
+【11. 実行対象】
+
+```text
+記事タイトル：{{ここにタイトルを記載}}
+セクション構成：
+- セクション1：{{見出し}} → 要点1, 要点2, ...
+- セクション2：{{見出し}} → 要点1, 要点2, ...
+...
+```
+
+※キーワードからテーマを自動判定し、**アクセントにカラーを適用、背景は常に白**にしてください。
