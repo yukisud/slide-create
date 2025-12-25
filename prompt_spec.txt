@@ -135,9 +135,20 @@
 ■ 位置安定化ルール（ズレ防止の核心）
 - **`justify-center`は使用禁止** → 書き出し時にコンテンツが下にズレる原因
 - **`my-auto`も使用禁止** → margin autoは書き出し時に正しく計算されないことがある
+- **`items-center`での垂直中央も禁止** → カード内でも同様にズレる
 - **代わりに固定パディング`pt-20`を使用** → 常に同じ位置から開始される
 - スライド枠は `flex flex-col` のみ（`justify-center`なし）
 - 720pxの高さで上から80px（pt-20）開始すると、視覚的にほぼ中央になる
+
+■ Flex使用ルール（重要）
+| 用途 | OK | NG |
+|------|----|----|
+| 横並び（アイコン+テキスト） | `flex items-center` | - |
+| カード内の垂直中央 | `pt-4 pb-4`（パディング） | `flex items-center`で縦中央 |
+| 複数カード横並び | `grid grid-cols-3 gap-4` | `flex justify-around` |
+| ボックス内コンテンツ | ブロック要素 + padding | flex + centering |
+
+※**flexは横並び専用**。縦の配置は必ずパディングで制御する。
 
 ```html
 <!-- 正しい構造例（justify-center禁止、固定パディングで配置） -->
@@ -291,6 +302,7 @@
 * ☐ 数字バッジは `flex items-center justify-center` を持っているか
 * ☐ スライド枠に `overflow-hidden` があるか
 * ☐ **スライド枠に`justify-center`を使っていないか**（禁止）
+* ☐ **カード/ボックス内で`items-center`による垂直中央をしていないか**（paddingで代用）
 * ☐ 全スライドに背景アイコン（z-0 + absolute）があるか
 * ☐ メインコンテンツが `z-10 relative px-16 pt-20 w-full` でラップされているか（固定pt-20必須）
 * ☐ 半透明背景のカード/ボックスに `relative z-10` があるか
