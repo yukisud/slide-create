@@ -293,7 +293,7 @@ async function renderSlideCanvas(slide) {
       backgroundColor: '#ffffff',
       logging: false,
       onclone: (clonedDoc) => {
-        console.log('onclone executed: v17 (hide icons + better shadow)');
+        console.log('onclone executed: v18 (flex centering fix)');
         clonedDoc.defaultView.scrollTo(0, 0);
         const clonedBody = clonedDoc.body;
         clonedBody.style.margin = '0';
@@ -316,6 +316,45 @@ async function renderSlideCanvas(slide) {
           el.style.lineHeight = '1';
           el.style.display = 'inline-block';
           el.style.verticalAlign = 'middle';
+        });
+
+        // 3. Flexbox中央揃えを固定値に変換（ズレ防止の核心）
+        clonedDoc.querySelectorAll('.slide *').forEach(el => {
+          const computed = clonedDoc.defaultView.getComputedStyle(el);
+          const display = computed.display;
+
+          // Flex コンテナの場合
+          if (display === 'flex' || display === 'inline-flex') {
+            const justifyContent = computed.justifyContent;
+            const alignItems = computed.alignItems;
+            const flexDirection = computed.flexDirection;
+
+            // 子要素の位置を計算して固定
+            const children = Array.from(el.children);
+            children.forEach(child => {
+              const childComputed = clonedDoc.defaultView.getComputedStyle(child);
+              const childRect = child.getBoundingClientRect();
+              const parentRect = el.getBoundingClientRect();
+
+              // 垂直中央揃えの場合（flex-col + justify-center または flex-row + items-center）
+              if ((flexDirection === 'column' && justifyContent === 'center') ||
+                  (flexDirection === 'row' && alignItems === 'center')) {
+                // 現在の位置を計算してpaddingで固定
+                const offsetTop = childRect.top - parentRect.top;
+                if (offsetTop > 0 && child.style.marginTop === '') {
+                  child.style.marginTop = `${offsetTop}px`;
+                }
+              }
+            });
+
+            // justify-center/items-centerをflex-startに変更
+            if (justifyContent === 'center') {
+              el.style.justifyContent = 'flex-start';
+            }
+            if (alignItems === 'center' && flexDirection === 'column') {
+              el.style.alignItems = 'flex-start';
+            }
+          }
         });
       }
     });
