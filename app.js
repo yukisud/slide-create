@@ -28,6 +28,8 @@ const closeErrorModalBtn = document.getElementById('closeErrorModalBtn');
 const renderApiUrlInput = document.getElementById('renderApiUrl');
 const renderApiKeyInput = document.getElementById('renderApiKey');
 const renderUseServerToggle = document.getElementById('renderUseServer');
+const renderWaitMsInput = document.getElementById('renderWaitMs');
+const renderConcurrencyInput = document.getElementById('renderConcurrency');
 
 // Loading Elements
 const loadingModal = document.getElementById('loadingModal');
@@ -49,7 +51,9 @@ const STORAGE_KEYS = {
   geminiUrl: 'html-slide-tool:geminiUrl',
   renderApiUrl: 'html-slide-tool:renderApiUrl',
   renderApiKey: 'html-slide-tool:renderApiKey',
-  renderUseServer: 'html-slide-tool:renderUseServer'
+  renderUseServer: 'html-slide-tool:renderUseServer',
+  renderWaitMs: 'html-slide-tool:renderWaitMs',
+  renderConcurrency: 'html-slide-tool:renderConcurrency'
 };
 
 function showLoading(total) {
@@ -163,19 +167,25 @@ async function exportImages() {
 
   try {
     const zip = new window.JSZip();
-    for (let i = 0; i < slides.length; i++) {
-      updateLoading(i + 1, slides.length);
-      // UI描画更新のために少し待機
+    const useServer = useServerRender();
+    const jobs = slides.map((slide, index) => async () => {
+      updateLoading(index + 1, slides.length);
       await new Promise(resolve => setTimeout(resolve, 50));
-
       let blob;
-      if (useServerRender()) {
-        blob = await renderSlideViaServer(slides[i], 'png');
+      if (useServer) {
+        blob = await renderSlideViaServer(slide, 'png');
       } else {
-        const canvas = await renderSlideCanvas(slides[i]);
+        const canvas = await renderSlideCanvas(slide);
         blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
       }
-      zip.file(`slide-${String(i + 1).padStart(2, '0')}.png`, blob);
+      zip.file(`slide-${String(index + 1).padStart(2, '0')}.png`, blob);
+    });
+    if (useServer) {
+      await runWithConcurrency(jobs, getServerConcurrency());
+    } else {
+      for (const job of jobs) {
+        await job();
+      }
     }
     const content = await zip.generateAsync({ type: 'blob' });
     const link = document.createElement('a');
@@ -200,21 +210,27 @@ async function exportPdf() {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit: 'px', format: [1280, 720], orientation: 'landscape' });
 
-    for (let i = 0; i < slides.length; i++) {
-      updateLoading(i + 1, slides.length);
-      // UI描画更新のために少し待機
+    const useServer = useServerRender();
+    const jobs = slides.map((slide, index) => async () => {
+      updateLoading(index + 1, slides.length);
       await new Promise(resolve => setTimeout(resolve, 50));
-
       let imgData;
-      if (useServerRender()) {
-        const blob = await renderSlideViaServer(slides[i], 'png');
+      if (useServer) {
+        const blob = await renderSlideViaServer(slide, 'png');
         imgData = await blobToDataUrl(blob);
       } else {
-        const canvas = await renderSlideCanvas(slides[i]);
+        const canvas = await renderSlideCanvas(slide);
         imgData = canvas.toDataURL('image/png');
       }
-      if (i > 0) pdf.addPage([1280, 720], 'landscape');
+      if (index > 0) pdf.addPage([1280, 720], 'landscape');
       pdf.addImage(imgData, 'PNG', 0, 0, 1280, 720);
+    });
+    if (useServer) {
+      await runWithConcurrency(jobs, getServerConcurrency());
+    } else {
+      for (const job of jobs) {
+        await job();
+      }
     }
     pdf.save('slides.pdf');
   } catch (error) {
@@ -319,6 +335,17 @@ function useServerRender() {
   return renderUseServerToggle.checked && renderApiUrlInput.value.trim();
 }
 
+function getServerWaitMs() {
+  const value = Number(renderWaitMsInput.value);
+  return Number.isFinite(value) && value >= 0 ? value : 1000;
+}
+
+function getServerConcurrency() {
+  const value = Number(renderConcurrencyInput.value);
+  if (!Number.isFinite(value)) return 1;
+  return Math.min(4, Math.max(1, Math.floor(value)));
+}
+
 function normalizeApiBase(url) {
   return url.replace(/\/+$/, '');
 }
@@ -383,7 +410,7 @@ async function renderSlideViaServer(slide, format) {
       width: 1280,
       height: 720,
       scale: 2,
-      wait: 1000,
+      wait: getServerWaitMs(),
       selector: '#capture-root'
     })
   });
@@ -401,6 +428,19 @@ function blobToDataUrl(blob) {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(blob);
   });
+}
+
+async function runWithConcurrency(jobs, limit) {
+  const queue = jobs.slice();
+  const workers = Array.from({ length: Math.min(limit, queue.length) }, async () => {
+    while (queue.length) {
+      const job = queue.shift();
+      if (job) {
+        await job();
+      }
+    }
+  });
+  await Promise.all(workers);
 }
 
 function saveGeminiUrl() {
@@ -598,6 +638,10 @@ function restoreState() {
   if (renderKey) renderApiKeyInput.value = renderKey;
   const renderUse = localStorage.getItem(STORAGE_KEYS.renderUseServer);
   if (renderUse) renderUseServerToggle.checked = renderUse === 'true';
+  const renderWait = localStorage.getItem(STORAGE_KEYS.renderWaitMs);
+  if (renderWait) renderWaitMsInput.value = renderWait;
+  const renderConcurrency = localStorage.getItem(STORAGE_KEYS.renderConcurrency);
+  if (renderConcurrency) renderConcurrencyInput.value = renderConcurrency;
 }
 
 htmlInput.addEventListener('input', () => {
@@ -627,6 +671,12 @@ renderApiKeyInput.addEventListener('input', () => {
 });
 renderUseServerToggle.addEventListener('change', () => {
   localStorage.setItem(STORAGE_KEYS.renderUseServer, String(renderUseServerToggle.checked));
+});
+renderWaitMsInput.addEventListener('input', () => {
+  localStorage.setItem(STORAGE_KEYS.renderWaitMs, renderWaitMsInput.value.trim());
+});
+renderConcurrencyInput.addEventListener('input', () => {
+  localStorage.setItem(STORAGE_KEYS.renderConcurrency, renderConcurrencyInput.value.trim());
 });
 modalCopyPromptBtn.addEventListener('click', copyPrompt);
 modalOpenGeminiBtn.addEventListener('click', () => {

@@ -87,6 +87,16 @@
           <span>APIキー（任意）</span>
           <input type="text" id="renderApiKey" placeholder="未設定なら空欄" />
         </label>
+        <div class="control-grid">
+          <label class="control">
+            <span>待機(ms)</span>
+            <input type="number" id="renderWaitMs" min="0" step="100" value="1000" />
+          </label>
+          <label class="control">
+            <span>並列数</span>
+            <input type="number" id="renderConcurrency" min="1" max="4" step="1" value="2" />
+          </label>
+        </div>
         <label class="control">
           <span>サーバー書き出しを使う</span>
           <input type="checkbox" id="renderUseServer" />

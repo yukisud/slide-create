@@ -10,11 +10,18 @@ app.use(express.json({ limit: '5mb' }));
 
 app.use((req, res, next) => {
   const origin = req.headers.origin || '';
-  if (ALLOWED_ORIGINS === '*' || ALLOWED_ORIGINS.split(',').map(v => v.trim()).includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
+  const allowList = ALLOWED_ORIGINS.split(',').map(v => v.trim()).filter(Boolean);
+  const allowAll = ALLOWED_ORIGINS === '*' || allowList.length === 0;
+  const originAllowed = allowAll || (origin && allowList.includes(origin));
+
+  if (origin && !originAllowed) {
+    return res.status(403).json({ error: 'origin not allowed' });
   }
+
+  res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
+
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
   }
