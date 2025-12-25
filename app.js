@@ -25,6 +25,9 @@ const errorMessage = document.getElementById('errorMessage');
 const errorPrompt = document.getElementById('errorPrompt');
 const copyErrorPromptBtn = document.getElementById('copyErrorPromptBtn');
 const closeErrorModalBtn = document.getElementById('closeErrorModalBtn');
+const renderApiUrlInput = document.getElementById('renderApiUrl');
+const renderApiKeyInput = document.getElementById('renderApiKey');
+const renderUseServerToggle = document.getElementById('renderUseServer');
 
 // Loading Elements
 const loadingModal = document.getElementById('loadingModal');
@@ -43,7 +46,10 @@ const COLOR_SWATCHES = [
 
 const STORAGE_KEYS = {
   html: 'html-slide-tool:html',
-  geminiUrl: 'html-slide-tool:geminiUrl'
+  geminiUrl: 'html-slide-tool:geminiUrl',
+  renderApiUrl: 'html-slide-tool:renderApiUrl',
+  renderApiKey: 'html-slide-tool:renderApiKey',
+  renderUseServer: 'html-slide-tool:renderUseServer'
 };
 
 function showLoading(total) {
@@ -162,8 +168,13 @@ async function exportImages() {
       // UI描画更新のために少し待機
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      const canvas = await renderSlideCanvas(slides[i]);
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      let blob;
+      if (useServerRender()) {
+        blob = await renderSlideViaServer(slides[i], 'png');
+      } else {
+        const canvas = await renderSlideCanvas(slides[i]);
+        blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      }
       zip.file(`slide-${String(i + 1).padStart(2, '0')}.png`, blob);
     }
     const content = await zip.generateAsync({ type: 'blob' });
@@ -194,8 +205,14 @@ async function exportPdf() {
       // UI描画更新のために少し待機
       await new Promise(resolve => setTimeout(resolve, 50));
 
-      const canvas = await renderSlideCanvas(slides[i]);
-      const imgData = canvas.toDataURL('image/png');
+      let imgData;
+      if (useServerRender()) {
+        const blob = await renderSlideViaServer(slides[i], 'png');
+        imgData = await blobToDataUrl(blob);
+      } else {
+        const canvas = await renderSlideCanvas(slides[i]);
+        imgData = canvas.toDataURL('image/png');
+      }
       if (i > 0) pdf.addPage([1280, 720], 'landscape');
       pdf.addImage(imgData, 'PNG', 0, 0, 1280, 720);
     }
@@ -296,6 +313,94 @@ async function renderSlideCanvas(slide) {
     // 5. 後始末
     document.body.removeChild(container);
   }
+}
+
+function useServerRender() {
+  return renderUseServerToggle.checked && renderApiUrlInput.value.trim();
+}
+
+function normalizeApiBase(url) {
+  return url.replace(/\/+$/, '');
+}
+
+function getSlideHtml(slide) {
+  const clone = slide.cloneNode(true);
+  clone.classList.remove('slide-editor');
+  clone.removeAttribute('contenteditable');
+  return clone.outerHTML;
+}
+
+function buildExportDocument(slideHtml, sourceHtml) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(sourceHtml, 'text/html');
+  const styleTags = Array.from(doc.querySelectorAll('style'))
+    .map(style => style.textContent || '')
+    .join('\n');
+  const linkTags = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'))
+    .map(link => link.outerHTML)
+    .join('\n');
+
+  return `<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  ${linkTags}
+  <style>
+    body { margin: 0; background: #ffffff; }
+    #capture-root { width: 1280px; height: 720px; overflow: hidden; }
+    .slide { width: 1280px; height: 720px; }
+  </style>
+  <style>${styleTags}</style>
+</head>
+<body>
+  <div id="capture-root">${slideHtml}</div>
+</body>
+</html>`;
+}
+
+async function renderSlideViaServer(slide, format) {
+  const apiBase = normalizeApiBase(renderApiUrlInput.value.trim());
+  if (!apiBase) throw new Error('Render API URLが未設定です');
+  const slideHtml = getSlideHtml(slide);
+  const html = buildExportDocument(slideHtml, htmlInput.value);
+
+  const headers = { 'Content-Type': 'application/json' };
+  const apiKey = renderApiKeyInput.value.trim();
+  if (apiKey) headers['X-API-Key'] = apiKey;
+
+  const res = await fetch(`${apiBase}/render`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      html,
+      format,
+      width: 1280,
+      height: 720,
+      scale: 2,
+      wait: 1000,
+      selector: '#capture-root'
+    })
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`render failed: ${res.status} ${text}`);
+  }
+  return await res.blob();
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
 }
 
 function saveGeminiUrl() {
@@ -487,6 +592,12 @@ function restoreState() {
   if (saved) htmlInput.value = saved;
   const url = localStorage.getItem(STORAGE_KEYS.geminiUrl);
   if (url) geminiUrlInput.value = url;
+  const renderUrl = localStorage.getItem(STORAGE_KEYS.renderApiUrl);
+  if (renderUrl) renderApiUrlInput.value = renderUrl;
+  const renderKey = localStorage.getItem(STORAGE_KEYS.renderApiKey);
+  if (renderKey) renderApiKeyInput.value = renderKey;
+  const renderUse = localStorage.getItem(STORAGE_KEYS.renderUseServer);
+  if (renderUse) renderUseServerToggle.checked = renderUse === 'true';
 }
 
 htmlInput.addEventListener('input', () => {
@@ -508,6 +619,15 @@ exportPdfBtn.addEventListener('click', exportPdf);
 copyPromptBtn.addEventListener('click', copyPrompt);
 saveGeminiBtn.addEventListener('click', saveGeminiUrl);
 openGeminiBtn.addEventListener('click', openGemini);
+renderApiUrlInput.addEventListener('input', () => {
+  localStorage.setItem(STORAGE_KEYS.renderApiUrl, renderApiUrlInput.value.trim());
+});
+renderApiKeyInput.addEventListener('input', () => {
+  localStorage.setItem(STORAGE_KEYS.renderApiKey, renderApiKeyInput.value.trim());
+});
+renderUseServerToggle.addEventListener('change', () => {
+  localStorage.setItem(STORAGE_KEYS.renderUseServer, String(renderUseServerToggle.checked));
+});
 modalCopyPromptBtn.addEventListener('click', copyPrompt);
 modalOpenGeminiBtn.addEventListener('click', () => {
   const url = modalGeminiUrl.value.trim();

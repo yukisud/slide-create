@@ -78,6 +78,23 @@
       </div>
 
       <div class="panel-section">
+        <div class="panel-title">サーバー書き出し <span class="help-tip" data-tip="Playwrightで実ブラウザ描画を行います。"></span></div>
+        <label class="control">
+          <span>Render API URL</span>
+          <input type="text" id="renderApiUrl" placeholder="https://your-render-app.onrender.com" />
+        </label>
+        <label class="control">
+          <span>APIキー（任意）</span>
+          <input type="text" id="renderApiKey" placeholder="未設定なら空欄" />
+        </label>
+        <label class="control">
+          <span>サーバー書き出しを使う</span>
+          <input type="checkbox" id="renderUseServer" />
+        </label>
+        <div class="panel-note">ONのとき、html2canvasではなくサーバーでPNGを書き出します。</div>
+      </div>
+
+      <div class="panel-section">
         <div class="panel-title">ローカル起動 <span class="help-tip" data-tip="初回だけ簡単セットアップを行います。"></span></div>
         <div class="panel-note">GitHub Pagesからダウンロードして、1クリックでローカル起動できます。</div>
         <div class="panel-row">

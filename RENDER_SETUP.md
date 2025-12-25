@@ -31,6 +31,16 @@ curl -X POST "https://YOUR_RENDER_URL/render" \
   --output slide.png
 ```
 
+HTMLを直接送る場合：
+
+```bash
+curl -X POST "https://YOUR_RENDER_URL/render" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_KEY" \
+  -d '{"html":"<!doctype html>...","format":"png","selector":"#capture-root"}' \
+  --output slide.png
+```
+
 PDFの場合：
 
 ```bash
