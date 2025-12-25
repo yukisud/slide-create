@@ -32,7 +32,7 @@
 - フォント：Google Fonts「Noto Sans JP」
 - アイコン：Font Awesome（CDN版）
 - レスポンシブ対応：不要
-- **`justify-center`は使用禁止**（ズレの原因）。代わりにコンテンツラッパーで`pt-16 pb-10`の固定パディングを使用。
+- **`justify-center`は使用禁止**（ズレの原因）。代わりにコンテンツラッパーで`py-12 my-auto`を使用して垂直中央配置。
 - bodyのbackground-color: #fff;
 - slideのshadowはつけない。hover Actionもつけない。
 
@@ -100,11 +100,11 @@
 
 1. **巨大アイコン（背景装飾）**
    ```html
-   <div class="absolute -bottom-32 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
+   <div class="absolute -bottom-16 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
      <i class="fab fa-[アイコン名] text-[800px] text-gray-100 opacity-50 leading-none"></i>
    </div>
    ```
-   ※必ず `div.absolute` でラップし、`-bottom-32`（下から約128px上）を使用。`-bottom-20`は低すぎるため禁止。
+   ※必ず `div.absolute` でラップし、`-bottom-16`を使用。アイコンの上部がスライド内に見える位置。
 
 2. **番号付き見出し（セクションタイトル）**
    ```html
@@ -124,27 +124,27 @@
    </div>
    ```
    ※ `w-[1280px] h-[720px]` と `overflow-hidden` は必須。
-   ※ **`justify-center`は使用禁止**（書き出し時に要素がズレる原因）。代わりにコンテンツラッパーで`pt-16`を使う。
+   ※ **`justify-center`は使用禁止**（書き出し時に要素がズレる原因）。代わりにコンテンツラッパーで`my-auto`を使う。
 
 ■ レイヤー構造ルール（重なり順の安定化）
-- **背景アイコン**: `z-0`（最背面）+ `absolute` + `-bottom-32`（下から約128px上）
-- **メインコンテンツ**: `z-10 relative px-16 pt-16 pb-10 w-full` でラップする（**固定パディング必須**）
+- **背景アイコン**: `z-0`（最背面）+ `absolute` + `-bottom-16`
+- **メインコンテンツ**: `z-10 relative px-16 py-12 my-auto w-full` でラップする（**my-auto必須**）
 - **独立したカード/ボックス**: `relative z-10` を個別に付与（特に `bg-white/90` 等の半透明背景使用時は必須）
 - z-indexを使う要素は必ず `position: relative` または `absolute` を指定
 
 ■ 位置安定化ルール（ズレ防止の核心）
 - **`justify-center`は使用禁止** → 書き出し時にコンテンツが下にズレる原因
-- **代わりに固定パディング**: コンテンツラッパーに `pt-16 pb-10` を必ず使用
+- **代わりに`my-auto`**: コンテンツラッパーに `my-auto` を使用して垂直中央配置
 - スライド枠は `flex flex-col` のみ（`justify-center`なし）
-- これにより、内容量に関係なく常に同じ位置からコンテンツが開始される
+- `my-auto`はmargin autoなので、親がflexなら自動的に垂直中央になる
 
 ```html
-<!-- 正しい構造例（justify-center禁止） -->
+<!-- 正しい構造例（justify-center禁止、my-autoで中央配置） -->
 <div class="slide relative bg-white w-[1280px] h-[720px] border-8 border-[テーマ色] flex flex-col overflow-hidden">
-    <div class="absolute -bottom-32 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
+    <div class="absolute -bottom-16 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
         <i class="fab fa-[アイコン] text-[800px] text-gray-100 opacity-50 leading-none"></i>
     </div>
-    <div class="z-10 relative px-16 pt-16 pb-10 w-full">
+    <div class="z-10 relative px-16 py-12 my-auto w-full">
         <!-- メインコンテンツ（スライドの60-80%を使い切る） -->
         <div class="bg-white/90 ... relative z-10"><!-- 半透明カードも z-10 --></div>
     </div>
@@ -286,12 +286,12 @@
 
 ■ 構造チェック（必須）
 * ☐ 必須コンポーネント構造（巨大アイコン・番号付き見出し・スライド枠）を守っているか
-* ☐ 巨大アイコンのクラスは `text-[800px]` かつ `-bottom-32` になっているか（-bottom-20は禁止）
+* ☐ 巨大アイコンのクラスは `text-[800px]` かつ `-bottom-16` になっているか
 * ☐ 数字バッジは `flex items-center justify-center` を持っているか
 * ☐ スライド枠に `overflow-hidden` があるか
 * ☐ **スライド枠に`justify-center`を使っていないか**（禁止）
 * ☐ 全スライドに背景アイコン（z-0 + absolute）があるか
-* ☐ メインコンテンツが `z-10 relative px-16 pt-16 pb-10 w-full` でラップされているか（固定パディング必須）
+* ☐ メインコンテンツが `z-10 relative px-16 py-12 my-auto w-full` でラップされているか（my-auto必須）
 * ☐ 半透明背景のカード/ボックスに `relative z-10` があるか
 
 ■ 書き出し互換性チェック（必須）
