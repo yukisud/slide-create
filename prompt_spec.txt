@@ -124,81 +124,6 @@
    ```
    ※ `w-[1280px] h-[720px]` と `overflow-hidden` は必須。
 
-■ スライドタイプ別テンプレート（厳守）
-
-【タイプA: タイトルスライド】
-```html
-<div class="slide relative bg-white w-[1280px] h-[720px] border-8 border-[テーマ色] flex flex-col justify-center overflow-hidden">
-    <!-- 背景アイコン（必須） -->
-    <div class="absolute -bottom-20 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
-        <i class="fab fa-[アイコン名] text-[800px] text-gray-100 opacity-50 leading-none"></i>
-    </div>
-    <!-- メインコンテンツ -->
-    <div class="z-10 px-20">
-        <span class="inline-block py-2 px-6 rounded-full bg-[テーマ色]/10 text-[テーマ色] font-bold text-2xl mb-8 border border-[テーマ色]">
-            {{カテゴリ・年度など}}
-        </span>
-        <h1 class="text-[64px] font-black text-gray-900 leading-tight mb-10">
-            {{タイトル（改行で3パートに分割可）}}
-        </h1>
-        <div class="flex items-center text-gray-600 text-3xl font-bold">
-            <i class="fas fa-[アイコン] text-[テーマ色] mr-4"></i>
-            <span>{{サブタイトル}}</span>
-        </div>
-    </div>
-</div>
-```
-
-【タイプB: コンテンツスライド】
-```html
-<div class="slide relative bg-white w-[1280px] h-[720px] border-8 border-[テーマ色] flex flex-col justify-center overflow-hidden">
-    <!-- 背景アイコン（必須） -->
-    <div class="absolute -bottom-20 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
-        <i class="fas fa-[アイコン名] text-[800px] text-gray-100 opacity-50 leading-none"></i>
-    </div>
-    <!-- メインコンテンツ -->
-    <div class="z-10 px-16 w-full">
-        <!-- 番号付き見出し（番号はh2出現順で自動付与） -->
-        <h1 class="text-[40px] font-bold text-[テーマ色] mb-10 flex items-center">
-            <span class="bg-[テーマ色] text-white w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-4">{{番号}}</span>
-            {{h2見出しテキスト}}
-        </h1>
-        <!-- 本文エリア：カード、リスト、グリッドなどを配置 -->
-        <div class="content-area">
-            <!-- ここにコンテンツを配置 -->
-        </div>
-    </div>
-</div>
-```
-
-【タイプC: まとめスライド】
-```html
-<div class="slide relative bg-white w-[1280px] h-[720px] border-8 border-[テーマ色] flex flex-col justify-center overflow-hidden">
-    <!-- 背景アイコン（必須） -->
-    <div class="absolute -bottom-20 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
-        <i class="fas fa-check-double text-[800px] text-gray-100 opacity-50 leading-none"></i>
-    </div>
-    <!-- メインコンテンツ -->
-    <div class="z-10 px-20 w-full text-center">
-        <h1 class="text-[50px] font-bold text-[テーマ色] mb-12">
-            まとめ：{{まとめタイトル}}
-        </h1>
-        <div class="bg-white/90 p-10 rounded-2xl shadow-xl border-4 border-[テーマ色] inline-block text-left max-w-4xl w-full">
-            <ul class="space-y-8">
-                <!-- まとめ項目（最大3個） -->
-                <li class="flex items-start">
-                    <div class="flex-shrink-0 w-12 h-12 rounded-full bg-[テーマ色] text-white flex items-center justify-center mr-6 text-2xl font-bold">1</div>
-                    <div>
-                        <span class="block text-3xl font-bold text-gray-800 mb-2">{{ポイント1タイトル}}</span>
-                        <span class="block text-xl text-gray-600">{{ポイント1説明}}</span>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-</div>
-```
-
 ---
 
 【4. タイポグラフィ設定】
@@ -318,7 +243,7 @@
 【9. 品質チェックリスト】
 
 ■ 構造チェック（必須）
-* ☐ スライドタイプ（A/B/C）ごとのテンプレート構造に完全一致しているか
+* ☐ 必須コンポーネント構造（巨大アイコン・番号付き見出し・スライド枠）を守っているか
 * ☐ 巨大アイコンのクラスは `text-[800px]` になっているか
 * ☐ 数字バッジは `flex items-center justify-center` を持っているか
 * ☐ スライド枠に `overflow-hidden` があるか
