@@ -18,11 +18,33 @@
     },
     "files": [
       "main.js",
-      "preload.js",
-      "../index.html",
-      "../app.js",
-      "../styles.css",
-      "../prompt_spec.txt"
+      "preload.js"
+    ],
+    "extraResources": [
+      {
+        "from": "../index.html",
+        "to": "index.html"
+      },
+      {
+        "from": "../app.js",
+        "to": "app.js"
+      },
+      {
+        "from": "../styles.css",
+        "to": "styles.css"
+      },
+      {
+        "from": "../prompt_spec.txt",
+        "to": "prompt_spec.txt"
+      },
+      {
+        "from": "../INSTALL.md",
+        "to": "INSTALL.md"
+      },
+      {
+        "from": "../unblock-mac.command",
+        "to": "unblock-mac.command"
+      }
     ],
     "afterSign": "scripts/notarize.js",
     "mac": {

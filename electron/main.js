@@ -15,8 +15,8 @@ function createWindow() {
     }
   });
 
-  // 親ディレクトリのindex.htmlを読み込む
-  mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
+  const appRoot = app.isPackaged ? process.resourcesPath : path.join(__dirname, '..');
+  mainWindow.loadFile(path.join(appRoot, 'index.html'));
 
   // 開発時はDevToolsを開く
   // mainWindow.webContents.openDevTools();
