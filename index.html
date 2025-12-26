@@ -76,43 +76,6 @@
           <button id="exportPdfBtn" class="btn btn-ghost">PDF一括</button>
         </div>
       </div>
-
-      <div class="panel-section">
-        <div class="panel-title">サーバー書き出し <span class="help-tip" data-tip="Playwrightで実ブラウザ描画を行います。"></span></div>
-        <label class="control">
-          <span>Render API URL</span>
-          <input type="text" id="renderApiUrl" placeholder="https://your-render-app.onrender.com" />
-        </label>
-        <label class="control">
-          <span>APIキー（任意）</span>
-          <input type="text" id="renderApiKey" placeholder="未設定なら空欄" />
-        </label>
-        <div class="control-grid">
-          <label class="control">
-            <span>待機(ms)</span>
-            <input type="number" id="renderWaitMs" min="0" step="100" value="1000" />
-          </label>
-          <label class="control">
-            <span>並列数</span>
-            <input type="number" id="renderConcurrency" min="1" max="4" step="1" value="2" />
-          </label>
-        </div>
-        <label class="control">
-          <span>サーバー書き出しを使う</span>
-          <input type="checkbox" id="renderUseServer" />
-        </label>
-        <div class="panel-note">ONのとき、html2canvasではなくサーバーでPNGを書き出します。</div>
-      </div>
-
-      <div class="panel-section">
-        <div class="panel-title">ローカル起動 <span class="help-tip" data-tip="初回だけ簡単セットアップを行います。"></span></div>
-        <div class="panel-note">GitHub Pagesからダウンロードして、1クリックでローカル起動できます。</div>
-        <div class="panel-row">
-          <a class="btn btn-ghost" href="start-mac.command" download>Mac用 start.command</a>
-          <a class="btn btn-ghost" href="start-win.bat" download>Windows用 start.bat</a>
-          <a class="btn btn-ghost" href="LOCAL_SETUP.md" target="_blank" rel="noopener">手順を見る</a>
-        </div>
-      </div>
     </section>
 
     <section class="panel panel-right">

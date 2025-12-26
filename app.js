@@ -25,11 +25,6 @@ const errorMessage = document.getElementById('errorMessage');
 const errorPrompt = document.getElementById('errorPrompt');
 const copyErrorPromptBtn = document.getElementById('copyErrorPromptBtn');
 const closeErrorModalBtn = document.getElementById('closeErrorModalBtn');
-const renderApiUrlInput = document.getElementById('renderApiUrl');
-const renderApiKeyInput = document.getElementById('renderApiKey');
-const renderUseServerToggle = document.getElementById('renderUseServer');
-const renderWaitMsInput = document.getElementById('renderWaitMs');
-const renderConcurrencyInput = document.getElementById('renderConcurrency');
 
 // Loading Elements
 const loadingModal = document.getElementById('loadingModal');
@@ -48,12 +43,7 @@ const COLOR_SWATCHES = [
 
 const STORAGE_KEYS = {
   html: 'html-slide-tool:html',
-  geminiUrl: 'html-slide-tool:geminiUrl',
-  renderApiUrl: 'html-slide-tool:renderApiUrl',
-  renderApiKey: 'html-slide-tool:renderApiKey',
-  renderUseServer: 'html-slide-tool:renderUseServer',
-  renderWaitMs: 'html-slide-tool:renderWaitMs',
-  renderConcurrency: 'html-slide-tool:renderConcurrency'
+  geminiUrl: 'html-slide-tool:geminiUrl'
 };
 
 function showLoading(total) {
@@ -159,33 +149,66 @@ function showToast(message) {
   setTimeout(() => toast.classList.remove('show'), 1800);
 }
 
+// Electron環境かどうかをチェック
+function isElectron() {
+  return window.electronAPI && window.electronAPI.isElectron;
+}
+
+// スライドのHTMLを取得（Electron用）
+function getSlidesHtml() {
+  const slides = Array.from(preview.querySelectorAll('.slide-editor'));
+  return slides.map(slide => {
+    const clone = slide.cloneNode(true);
+    clone.classList.remove('slide-editor');
+    clone.removeAttribute('contenteditable');
+    clone.removeAttribute('data-slide-index');
+    return clone.outerHTML;
+  });
+}
+
 async function exportImages() {
   const slides = Array.from(preview.querySelectorAll('.slide-editor'));
   if (slides.length === 0) return;
 
+  // Electron環境の場合はネイティブキャプチャを使用
+  if (isElectron()) {
+    showLoading(slides.length);
+    try {
+      const slidesHtml = getSlidesHtml();
+
+      // 進捗イベントをリッスン
+      window.electronAPI.onCaptureProgress((data) => {
+        updateLoading(data.current, data.total);
+      });
+
+      const result = await window.electronAPI.captureSlides(slidesHtml, slides.length);
+
+      if (result.success) {
+        showToast(result.message);
+      } else {
+        showToast(result.message || '書き出しに失敗しました');
+      }
+    } catch (error) {
+      console.error(error);
+      showToast('書き出しに失敗しました');
+    } finally {
+      hideLoading();
+    }
+    return;
+  }
+
+  // 通常のブラウザ環境
   showLoading(slides.length);
 
   try {
     const zip = new window.JSZip();
-    const useServer = useServerRender();
-    const jobs = slides.map((slide, index) => async () => {
+    for (let index = 0; index < slides.length; index += 1) {
+      const slide = slides[index];
       updateLoading(index + 1, slides.length);
       await new Promise(resolve => setTimeout(resolve, 50));
-      let blob;
-      if (useServer) {
-        blob = await renderSlideViaServer(slide, 'png');
-      } else {
-        const canvas = await renderSlideCanvas(slide);
-        blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-      }
-      zip.file(`slide-${String(index + 1).padStart(2, '0')}.png`, blob);
-    });
-    if (useServer) {
-      await runWithConcurrency(jobs, getServerConcurrency());
-    } else {
-      for (const job of jobs) {
-        await job();
-      }
+      const canvas = await renderSlideCanvas(slide);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      zip.file(`${String(index + 1).padStart(3, '0')}.png`, blob);
     }
     const content = await zip.generateAsync({ type: 'blob' });
     const link = document.createElement('a');
@@ -204,35 +227,49 @@ async function exportPdf() {
   const slides = Array.from(preview.querySelectorAll('.slide-editor'));
   if (slides.length === 0) return;
 
+  // Electron環境の場合はネイティブPDF出力を使用
+  if (isElectron()) {
+    showLoading(slides.length);
+    try {
+      const slidesHtml = getSlidesHtml();
+
+      window.electronAPI.onCaptureProgress((data) => {
+        updateLoading(data.current, data.total);
+      });
+
+      const result = await window.electronAPI.exportPdf(slidesHtml, slides.length);
+
+      if (result.success) {
+        showToast(result.message);
+      } else {
+        showToast(result.message || '書き出しに失敗しました');
+      }
+    } catch (error) {
+      console.error(error);
+      showToast('書き出しに失敗しました');
+    } finally {
+      hideLoading();
+    }
+    return;
+  }
+
+  // 通常のブラウザ環境
   showLoading(slides.length);
 
   try {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit: 'px', format: [1280, 720], orientation: 'landscape' });
 
-    const useServer = useServerRender();
-    const jobs = slides.map((slide, index) => async () => {
+    for (let index = 0; index < slides.length; index += 1) {
+      const slide = slides[index];
       updateLoading(index + 1, slides.length);
       await new Promise(resolve => setTimeout(resolve, 50));
-      let imgData;
-      if (useServer) {
-        const blob = await renderSlideViaServer(slide, 'png');
-        imgData = await blobToDataUrl(blob);
-      } else {
-        const canvas = await renderSlideCanvas(slide);
-        imgData = canvas.toDataURL('image/png');
-      }
+      const canvas = await renderSlideCanvas(slide);
+      const imgData = canvas.toDataURL('image/png');
       if (index > 0) pdf.addPage([1280, 720], 'landscape');
       pdf.addImage(imgData, 'PNG', 0, 0, 1280, 720);
-    });
-    if (useServer) {
-      await runWithConcurrency(jobs, getServerConcurrency());
-    } else {
-      for (const job of jobs) {
-        await job();
-      }
     }
-    pdf.save('slides.pdf');
+    pdf.save('slide.pdf');
   } catch (error) {
     console.error(error);
     showToast('書き出しに失敗しました');
@@ -278,6 +315,29 @@ async function renderSlideCanvas(slide) {
   // 4. レイアウト計算のために少し待機
   await new Promise(resolve => setTimeout(resolve, 100));
 
+  // 5. スライド直下のflex修正のみ（ネストされた要素は触らない）
+  const slideEl = clone.querySelector('.slide');
+  if (slideEl) {
+    const computed = window.getComputedStyle(slideEl);
+    if (computed.display === 'flex' && computed.flexDirection === 'column') {
+      // スライドの直接の子要素（コンテンツラッパー）の位置を保存
+      Array.from(slideEl.children).forEach(child => {
+        // absolute要素（背景アイコン）はスキップ
+        const childComputed = window.getComputedStyle(child);
+        if (childComputed.position === 'absolute') return;
+
+        const childRect = child.getBoundingClientRect();
+        const parentRect = slideEl.getBoundingClientRect();
+        const offsetTop = childRect.top - parentRect.top;
+
+        // 位置をdata属性に保存
+        child.dataset.flexFixTop = `${offsetTop}`;
+      });
+
+      slideEl.dataset.flexFix = 'slide';
+    }
+  }
+
   try {
     // 3. html2canvasでレンダリング (復旧)
     const canvas = await html2canvas(container, {
@@ -293,13 +353,29 @@ async function renderSlideCanvas(slide) {
       backgroundColor: '#ffffff',
       logging: false,
       onclone: (clonedDoc) => {
-        console.log('onclone executed: v18 (flex centering fix)');
+        console.log('onclone executed: v21 (slide-only flex fix)');
         clonedDoc.defaultView.scrollTo(0, 0);
         const clonedBody = clonedDoc.body;
         clonedBody.style.margin = '0';
         clonedBody.style.padding = '0';
 
-        // 1. z-indexの効きが弱い要素にpositionを与えてレイヤー順を安定させる
+        // 1. z-indexを構造ベースで強制設定（クラス名に依存しない）
+        clonedDoc.querySelectorAll('.slide').forEach(slide => {
+          Array.from(slide.children).forEach(child => {
+            const computed = clonedDoc.defaultView.getComputedStyle(child);
+
+            if (computed.position === 'absolute') {
+              // absolute要素（背景アイコン）は最背面
+              child.style.zIndex = '0';
+            } else {
+              // それ以外（コンテンツラッパー）は前面
+              child.style.position = 'relative';
+              child.style.zIndex = '10';
+            }
+          });
+        });
+
+        // Tailwindのz-indexクラスも処理（ネストされた要素用）
         const zIndexClasses = ['z-0', 'z-10', 'z-20', 'z-30', 'z-40', 'z-50'];
         zIndexClasses.forEach((cls) => {
           clonedDoc.querySelectorAll(`.slide .${cls}`).forEach(el => {
@@ -318,42 +394,17 @@ async function renderSlideCanvas(slide) {
           el.style.verticalAlign = 'middle';
         });
 
-        // 3. Flexbox中央揃えを固定値に変換（ズレ防止の核心）
-        clonedDoc.querySelectorAll('.slide *').forEach(el => {
-          const computed = clonedDoc.defaultView.getComputedStyle(el);
-          const display = computed.display;
+        // 3. .slide要素のflex修正を適用（ネストは触らない）
+        clonedDoc.querySelectorAll('[data-flex-fix="slide"]').forEach(slide => {
+          slide.style.justifyContent = 'flex-start';
+          slide.style.alignItems = 'stretch';
+        });
 
-          // Flex コンテナの場合
-          if (display === 'flex' || display === 'inline-flex') {
-            const justifyContent = computed.justifyContent;
-            const alignItems = computed.alignItems;
-            const flexDirection = computed.flexDirection;
-
-            // 子要素の位置を計算して固定
-            const children = Array.from(el.children);
-            children.forEach(child => {
-              const childComputed = clonedDoc.defaultView.getComputedStyle(child);
-              const childRect = child.getBoundingClientRect();
-              const parentRect = el.getBoundingClientRect();
-
-              // 垂直中央揃えの場合（flex-col + justify-center または flex-row + items-center）
-              if ((flexDirection === 'column' && justifyContent === 'center') ||
-                  (flexDirection === 'row' && alignItems === 'center')) {
-                // 現在の位置を計算してpaddingで固定
-                const offsetTop = childRect.top - parentRect.top;
-                if (offsetTop > 0 && child.style.marginTop === '') {
-                  child.style.marginTop = `${offsetTop}px`;
-                }
-              }
-            });
-
-            // justify-center/items-centerをflex-startに変更
-            if (justifyContent === 'center') {
-              el.style.justifyContent = 'flex-start';
-            }
-            if (alignItems === 'center' && flexDirection === 'column') {
-              el.style.alignItems = 'flex-start';
-            }
+        // 4. スライドの直接子要素の位置を固定
+        clonedDoc.querySelectorAll('[data-flex-fix-top]').forEach(el => {
+          const top = el.dataset.flexFixTop;
+          if (top && parseFloat(top) > 0) {
+            el.style.marginTop = `${top}px`;
           }
         });
       }
@@ -368,118 +419,6 @@ async function renderSlideCanvas(slide) {
     // 5. 後始末
     document.body.removeChild(container);
   }
-}
-
-function useServerRender() {
-  return renderUseServerToggle.checked && renderApiUrlInput.value.trim();
-}
-
-function getServerWaitMs() {
-  const value = Number(renderWaitMsInput.value);
-  return Number.isFinite(value) && value >= 0 ? value : 1000;
-}
-
-function getServerConcurrency() {
-  const value = Number(renderConcurrencyInput.value);
-  if (!Number.isFinite(value)) return 1;
-  return Math.min(4, Math.max(1, Math.floor(value)));
-}
-
-function normalizeApiBase(url) {
-  return url.replace(/\/+$/, '');
-}
-
-function getSlideHtml(slide) {
-  const clone = slide.cloneNode(true);
-  clone.classList.remove('slide-editor');
-  clone.removeAttribute('contenteditable');
-  return clone.outerHTML;
-}
-
-function buildExportDocument(slideHtml, sourceHtml) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(sourceHtml, 'text/html');
-  const styleTags = Array.from(doc.querySelectorAll('style'))
-    .map(style => style.textContent || '')
-    .join('\n');
-  const linkTags = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'))
-    .map(link => link.outerHTML)
-    .join('\n');
-
-  return `<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  ${linkTags}
-  <style>
-    body { margin: 0; background: #ffffff; }
-    #capture-root { width: 1280px; height: 720px; overflow: hidden; }
-    .slide { width: 1280px; height: 720px; }
-  </style>
-  <style>${styleTags}</style>
-</head>
-<body>
-  <div id="capture-root">${slideHtml}</div>
-</body>
-</html>`;
-}
-
-async function renderSlideViaServer(slide, format) {
-  const apiBase = normalizeApiBase(renderApiUrlInput.value.trim());
-  if (!apiBase) throw new Error('Render API URLが未設定です');
-  const slideHtml = getSlideHtml(slide);
-  const html = buildExportDocument(slideHtml, htmlInput.value);
-
-  const headers = { 'Content-Type': 'application/json' };
-  const apiKey = renderApiKeyInput.value.trim();
-  if (apiKey) headers['X-API-Key'] = apiKey;
-
-  const res = await fetch(`${apiBase}/render`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      html,
-      format,
-      width: 1280,
-      height: 720,
-      scale: 2,
-      wait: getServerWaitMs(),
-      selector: '#capture-root'
-    })
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`render failed: ${res.status} ${text}`);
-  }
-  return await res.blob();
-}
-
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(blob);
-  });
-}
-
-async function runWithConcurrency(jobs, limit) {
-  const queue = jobs.slice();
-  const workers = Array.from({ length: Math.min(limit, queue.length) }, async () => {
-    while (queue.length) {
-      const job = queue.shift();
-      if (job) {
-        await job();
-      }
-    }
-  });
-  await Promise.all(workers);
 }
 
 function saveGeminiUrl() {
@@ -671,16 +610,6 @@ function restoreState() {
   if (saved) htmlInput.value = saved;
   const url = localStorage.getItem(STORAGE_KEYS.geminiUrl);
   if (url) geminiUrlInput.value = url;
-  const renderUrl = localStorage.getItem(STORAGE_KEYS.renderApiUrl);
-  if (renderUrl) renderApiUrlInput.value = renderUrl;
-  const renderKey = localStorage.getItem(STORAGE_KEYS.renderApiKey);
-  if (renderKey) renderApiKeyInput.value = renderKey;
-  const renderUse = localStorage.getItem(STORAGE_KEYS.renderUseServer);
-  if (renderUse) renderUseServerToggle.checked = renderUse === 'true';
-  const renderWait = localStorage.getItem(STORAGE_KEYS.renderWaitMs);
-  if (renderWait) renderWaitMsInput.value = renderWait;
-  const renderConcurrency = localStorage.getItem(STORAGE_KEYS.renderConcurrency);
-  if (renderConcurrency) renderConcurrencyInput.value = renderConcurrency;
 }
 
 htmlInput.addEventListener('input', () => {
@@ -702,21 +631,6 @@ exportPdfBtn.addEventListener('click', exportPdf);
 copyPromptBtn.addEventListener('click', copyPrompt);
 saveGeminiBtn.addEventListener('click', saveGeminiUrl);
 openGeminiBtn.addEventListener('click', openGemini);
-renderApiUrlInput.addEventListener('input', () => {
-  localStorage.setItem(STORAGE_KEYS.renderApiUrl, renderApiUrlInput.value.trim());
-});
-renderApiKeyInput.addEventListener('input', () => {
-  localStorage.setItem(STORAGE_KEYS.renderApiKey, renderApiKeyInput.value.trim());
-});
-renderUseServerToggle.addEventListener('change', () => {
-  localStorage.setItem(STORAGE_KEYS.renderUseServer, String(renderUseServerToggle.checked));
-});
-renderWaitMsInput.addEventListener('input', () => {
-  localStorage.setItem(STORAGE_KEYS.renderWaitMs, renderWaitMsInput.value.trim());
-});
-renderConcurrencyInput.addEventListener('input', () => {
-  localStorage.setItem(STORAGE_KEYS.renderConcurrency, renderConcurrencyInput.value.trim());
-});
 modalCopyPromptBtn.addEventListener('click', copyPrompt);
 modalOpenGeminiBtn.addEventListener('click', () => {
   const url = modalGeminiUrl.value.trim();
