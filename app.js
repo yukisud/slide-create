@@ -159,10 +159,55 @@ function showToast(message) {
   setTimeout(() => toast.classList.remove('show'), 1800);
 }
 
+// Electron環境かどうかをチェック
+function isElectron() {
+  return window.electronAPI && window.electronAPI.isElectron;
+}
+
+// スライドのHTMLを取得（Electron用）
+function getSlidesHtml() {
+  const slides = Array.from(preview.querySelectorAll('.slide-editor'));
+  return slides.map(slide => {
+    const clone = slide.cloneNode(true);
+    clone.classList.remove('slide-editor');
+    clone.removeAttribute('contenteditable');
+    clone.removeAttribute('data-slide-index');
+    return clone.outerHTML;
+  });
+}
+
 async function exportImages() {
   const slides = Array.from(preview.querySelectorAll('.slide-editor'));
   if (slides.length === 0) return;
 
+  // Electron環境の場合はネイティブキャプチャを使用
+  if (isElectron()) {
+    showLoading(slides.length);
+    try {
+      const slidesHtml = getSlidesHtml();
+
+      // 進捗イベントをリッスン
+      window.electronAPI.onCaptureProgress((data) => {
+        updateLoading(data.current, data.total);
+      });
+
+      const result = await window.electronAPI.captureSlides(slidesHtml, slides.length);
+
+      if (result.success) {
+        showToast(result.message);
+      } else {
+        showToast(result.message || '書き出しに失敗しました');
+      }
+    } catch (error) {
+      console.error(error);
+      showToast('書き出しに失敗しました');
+    } finally {
+      hideLoading();
+    }
+    return;
+  }
+
+  // 通常のブラウザ環境
   showLoading(slides.length);
 
   try {
@@ -204,6 +249,33 @@ async function exportPdf() {
   const slides = Array.from(preview.querySelectorAll('.slide-editor'));
   if (slides.length === 0) return;
 
+  // Electron環境の場合はネイティブPDF出力を使用
+  if (isElectron()) {
+    showLoading(slides.length);
+    try {
+      const slidesHtml = getSlidesHtml();
+
+      window.electronAPI.onCaptureProgress((data) => {
+        updateLoading(data.current, data.total);
+      });
+
+      const result = await window.electronAPI.exportPdf(slidesHtml, slides.length);
+
+      if (result.success) {
+        showToast(result.message);
+      } else {
+        showToast(result.message || '書き出しに失敗しました');
+      }
+    } catch (error) {
+      console.error(error);
+      showToast('書き出しに失敗しました');
+    } finally {
+      hideLoading();
+    }
+    return;
+  }
+
+  // 通常のブラウザ環境
   showLoading(slides.length);
 
   try {
