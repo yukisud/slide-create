@@ -322,7 +322,23 @@ async function renderSlideCanvas(slide) {
         clonedBody.style.margin = '0';
         clonedBody.style.padding = '0';
 
-        // 1. z-indexの効きが弱い要素にpositionを与えてレイヤー順を安定させる
+        // 1. z-indexを構造ベースで強制設定（クラス名に依存しない）
+        clonedDoc.querySelectorAll('.slide').forEach(slide => {
+          Array.from(slide.children).forEach(child => {
+            const computed = clonedDoc.defaultView.getComputedStyle(child);
+
+            if (computed.position === 'absolute') {
+              // absolute要素（背景アイコン）は最背面
+              child.style.zIndex = '0';
+            } else {
+              // それ以外（コンテンツラッパー）は前面
+              child.style.position = 'relative';
+              child.style.zIndex = '10';
+            }
+          });
+        });
+
+        // Tailwindのz-indexクラスも処理（ネストされた要素用）
         const zIndexClasses = ['z-0', 'z-10', 'z-20', 'z-30', 'z-40', 'z-50'];
         zIndexClasses.forEach((cls) => {
           clonedDoc.querySelectorAll(`.slide .${cls}`).forEach(el => {
