@@ -180,17 +180,33 @@ function renderSlides() {
     });
   }
 
+  // body内のスクリプト（スライドの外にあるもの）も検出
+  const bodyScripts = [];
+  if (doc && doc.body) {
+    const scripts = Array.from(doc.body.querySelectorAll('script'));
+    scripts.forEach(script => {
+      // .slide要素の中にないスクリプトのみ
+      if (!script.closest('.slide')) {
+        console.log('[DEBUG] Found body script outside slides');
+        bodyScripts.push({
+          src: script.src || null,
+          textContent: script.textContent
+        });
+      }
+    });
+  }
+
   // head内のスクリプトを先に読み込む
   let headScriptsLoaded = 0;
   const totalHeadScripts = headScripts.length;
 
   const renderSlidesAfterHeadScripts = () => {
     console.log('[DEBUG] Head scripts loaded, rendering slides');
-    renderSlidesContent(slides);
+    renderSlidesContent(slides, bodyScripts);
   };
 
   if (totalHeadScripts === 0) {
-    renderSlidesContent(slides);
+    renderSlidesContent(slides, bodyScripts);
   } else {
     console.log('[DEBUG] Loading head scripts, count:', totalHeadScripts);
     headScripts.forEach(src => {
@@ -229,7 +245,7 @@ function extractSlidesFromDoc(doc) {
   return [wrapper];
 }
 
-function renderSlidesContent(slides) {
+function renderSlidesContent(slides, bodyScripts = []) {
   slides.forEach((slide, idx) => {
     const wrap = document.createElement('div');
     wrap.className = 'slide-wrap';
@@ -308,6 +324,22 @@ function renderSlidesContent(slides) {
       });
     }
   });
+
+  // body内のスクリプト（スライド外）を最後に実行
+  if (bodyScripts && bodyScripts.length > 0) {
+    console.log('[DEBUG] Executing body scripts, count:', bodyScripts.length);
+    bodyScripts.forEach((scriptData, idx) => {
+      console.log('[DEBUG] Executing body script', idx);
+      const newScript = document.createElement('script');
+      if (scriptData.src) {
+        newScript.src = scriptData.src;
+      }
+      if (scriptData.textContent) {
+        newScript.textContent = scriptData.textContent;
+      }
+      document.body.appendChild(newScript);
+    });
+  }
 
   applyEditMode();
 }

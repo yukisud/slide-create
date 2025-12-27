@@ -396,8 +396,64 @@ body.app-root {
     height: auto;
   }
 
+  .preview {
+    overflow-x: auto;
+  }
+
   .preview .slide-wrap {
-    transform: scale(0.6);
+    transform-origin: left top;
+  }
+
+  .app-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .header-actions .btn {
+    flex: 1;
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-main {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .panel {
+    padding: 12px;
+  }
+
+  .panel-section {
+    padding: 10px;
+  }
+
+  .input-textarea {
+    min-height: 120px;
+    font-size: 12px;
+  }
+
+  .preview .slide-wrap {
+    transform: scale(calc(100vw / 1280 * 0.9));
+  }
+
+  .selection-toolbar {
+    max-width: 85vw;
+    font-size: 10px;
+  }
+
+  .modal-card {
+    width: 95vw;
+    padding: 16px;
   }
 }
 
