@@ -79,13 +79,159 @@ function loadPrompt() {
 }
 
 function sanitizeHtml(doc) {
-  doc.querySelectorAll('script').forEach(el => el.remove());
+  // 信頼できるCDNのホワイトリスト
+  const TRUSTED_CDNS = [
+    'cdnjs.cloudflare.com',
+    'cdn.jsdelivr.net',
+    'unpkg.com',
+    'code.jquery.com',
+    'd3js.org',
+    'cdn.plot.ly',
+    'cdn.bokeh.org',
+    'www.gstatic.com/charts'
+  ];
+
+  // 危険なパターン（基本的なXSS対策）
+  const DANGEROUS_PATTERNS = [
+    /document\.cookie/i,
+    /localStorage/i,
+    /sessionStorage/i,
+    /\.innerHTML\s*=/i,
+    /eval\s*\(/i,
+    /Function\s*\(/i,
+    /setTimeout\s*\(\s*['"`]/i,
+    /setInterval\s*\(\s*['"`]/i,
+    /window\.location/i,
+    /document\.write/i
+  ];
+
+  const allScripts = doc.querySelectorAll('script');
+  console.log('[DEBUG] sanitizeHtml: Found', allScripts.length, 'script tags');
+
+  doc.querySelectorAll('script').forEach(el => {
+    const src = el.getAttribute('src');
+
+    // 外部スクリプト（src属性あり）の場合
+    if (src) {
+      console.log('[DEBUG] sanitizeHtml: Checking external script:', src);
+      // 信頼できるCDNからのスクリプトかチェック
+      const isTrusted = TRUSTED_CDNS.some(cdn => {
+        try {
+          const url = new URL(src, window.location.href);
+          return url.hostname.includes(cdn);
+        } catch {
+          return false;
+        }
+      });
+
+      // 信頼できないスクリプトは削除
+      if (!isTrusted) {
+        console.log('[DEBUG] sanitizeHtml: Removing untrusted script:', src);
+        el.remove();
+      } else {
+        console.log('[DEBUG] sanitizeHtml: Keeping trusted script:', src);
+      }
+      return;
+    }
+
+    // インラインスクリプトの場合、危険なパターンをチェック
+    const scriptContent = el.textContent || '';
+    const isDangerous = DANGEROUS_PATTERNS.some(pattern => pattern.test(scriptContent));
+
+    if (isDangerous) {
+      console.warn('[DEBUG] sanitizeHtml: Dangerous script pattern detected and removed:', scriptContent.substring(0, 100));
+      el.remove();
+    } else {
+      console.log('[DEBUG] sanitizeHtml: Keeping safe inline script, length:', scriptContent.length);
+    }
+    // 安全と判断されたインラインスクリプトは残す
+  });
+
   return doc;
 }
 
-function extractSlides(html) {
-  const parser = new DOMParser();
-  const doc = sanitizeHtml(parser.parseFromString(html, 'text/html'));
+function renderSlides() {
+  const html = htmlInput.value.trim();
+  preview.innerHTML = '';
+  if (!html) return;
+
+  let slides = [];
+  let doc = null;
+  try {
+    const parser = new DOMParser();
+    doc = sanitizeHtml(parser.parseFromString(html, 'text/html'));
+    slides = extractSlidesFromDoc(doc);
+  } catch (e) {
+    showErrorModal(e.message, html);
+    return;
+  }
+  if (slides.length === 0) {
+    showErrorModal('スライド要素が見つかりませんでした。class="slide" が含まれているか確認してください。', html);
+    return;
+  }
+
+  // head内の外部スクリプトを検出して先に読み込む
+  const headScripts = [];
+  if (doc && doc.head) {
+    const scripts = Array.from(doc.head.querySelectorAll('script[src]'));
+    scripts.forEach(script => {
+      headScripts.push(script.src);
+      console.log('[DEBUG] Found head script:', script.src);
+    });
+  }
+
+  // body内のスクリプト（スライドの外にあるもの）も検出
+  const bodyScripts = [];
+  if (doc && doc.body) {
+    const scripts = Array.from(doc.body.querySelectorAll('script'));
+    scripts.forEach(script => {
+      // .slide要素の中にないスクリプトのみ
+      if (!script.closest('.slide')) {
+        console.log('[DEBUG] Found body script outside slides');
+        bodyScripts.push({
+          src: script.src || null,
+          textContent: script.textContent
+        });
+      }
+    });
+  }
+
+  // head内のスクリプトを先に読み込む
+  let headScriptsLoaded = 0;
+  const totalHeadScripts = headScripts.length;
+
+  const renderSlidesAfterHeadScripts = () => {
+    console.log('[DEBUG] Head scripts loaded, rendering slides');
+    renderSlidesContent(slides, bodyScripts);
+  };
+
+  if (totalHeadScripts === 0) {
+    renderSlidesContent(slides, bodyScripts);
+  } else {
+    console.log('[DEBUG] Loading head scripts, count:', totalHeadScripts);
+    headScripts.forEach(src => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = () => {
+        headScriptsLoaded++;
+        console.log('[DEBUG] Head script loaded:', src, `(${headScriptsLoaded}/${totalHeadScripts})`);
+        if (headScriptsLoaded === totalHeadScripts) {
+          renderSlidesAfterHeadScripts();
+        }
+      };
+      script.onerror = () => {
+        console.error('[DEBUG] Failed to load head script:', src);
+        headScriptsLoaded++;
+        if (headScriptsLoaded === totalHeadScripts) {
+          renderSlidesAfterHeadScripts();
+        }
+      };
+      document.head.appendChild(script);
+    });
+  }
+}
+
+function extractSlidesFromDoc(doc) {
   const parserError = doc.querySelector('parsererror');
   if (parserError) {
     throw new Error('HTMLの構文解析に失敗しました。タグの閉じ忘れや不正な構造が含まれている可能性があります。');
@@ -99,22 +245,7 @@ function extractSlides(html) {
   return [wrapper];
 }
 
-function renderSlides() {
-  const html = htmlInput.value.trim();
-  preview.innerHTML = '';
-  if (!html) return;
-
-  let slides = [];
-  try {
-    slides = extractSlides(html);
-  } catch (e) {
-    showErrorModal(e.message, html);
-    return;
-  }
-  if (slides.length === 0) {
-    showErrorModal('スライド要素が見つかりませんでした。class="slide" が含まれているか確認してください。', html);
-    return;
-  }
+function renderSlidesContent(slides, bodyScripts = []) {
   slides.forEach((slide, idx) => {
     const wrap = document.createElement('div');
     wrap.className = 'slide-wrap';
@@ -122,9 +253,93 @@ function renderSlides() {
     const slideNode = slide.cloneNode(true);
     slideNode.classList.add('slide-editor');
     slideNode.dataset.slideIndex = String(idx + 1);
+
+    // scriptタグを抜き出して保存（外部とインラインを分離）
+    const scripts = Array.from(slideNode.querySelectorAll('script'));
+    console.log('[DEBUG] Found scripts:', scripts.length);
+    const externalScripts = [];
+    const inlineScripts = [];
+
+    scripts.forEach(script => {
+      if (script.src) {
+        console.log('[DEBUG] External script:', script.src);
+        externalScripts.push({
+          src: script.src,
+          textContent: script.textContent
+        });
+      } else {
+        console.log('[DEBUG] Inline script length:', script.textContent.length);
+        inlineScripts.push({
+          textContent: script.textContent
+        });
+      }
+      script.remove();
+    });
+
     wrap.appendChild(slideNode);
     preview.appendChild(wrap);
+
+    // 外部スクリプトを先に読み込む
+    let loadedCount = 0;
+    const totalExternal = externalScripts.length;
+
+    const executeInlineScripts = () => {
+      // すべての外部スクリプトがロード完了後、インラインスクリプトを実行
+      console.log('[DEBUG] Executing inline scripts, count:', inlineScripts.length);
+      inlineScripts.forEach((data, idx) => {
+        console.log('[DEBUG] Executing inline script', idx);
+        const newScript = document.createElement('script');
+        newScript.textContent = data.textContent;
+        slideNode.appendChild(newScript);
+      });
+    };
+
+    if (totalExternal === 0) {
+      // 外部スクリプトがない場合はすぐに実行
+      console.log('[DEBUG] No external scripts, executing inline immediately');
+      executeInlineScripts();
+    } else {
+      // 外部スクリプトを追加
+      console.log('[DEBUG] Loading external scripts, count:', totalExternal);
+      externalScripts.forEach(data => {
+        const newScript = document.createElement('script');
+        newScript.src = data.src;
+        newScript.onload = () => {
+          loadedCount++;
+          console.log('[DEBUG] External script loaded:', data.src, `(${loadedCount}/${totalExternal})`);
+          if (loadedCount === totalExternal) {
+            // すべての外部スクリプトがロード完了
+            console.log('[DEBUG] All external scripts loaded, executing inline scripts');
+            executeInlineScripts();
+          }
+        };
+        newScript.onerror = () => {
+          console.error('[DEBUG] Failed to load script:', data.src);
+          loadedCount++;
+          if (loadedCount === totalExternal) {
+            executeInlineScripts();
+          }
+        };
+        slideNode.appendChild(newScript);
+      });
+    }
   });
+
+  // body内のスクリプト（スライド外）を最後に実行
+  if (bodyScripts && bodyScripts.length > 0) {
+    console.log('[DEBUG] Executing body scripts, count:', bodyScripts.length);
+    bodyScripts.forEach((scriptData, idx) => {
+      console.log('[DEBUG] Executing body script', idx);
+      const newScript = document.createElement('script');
+      if (scriptData.src) {
+        newScript.src = scriptData.src;
+      }
+      if (scriptData.textContent) {
+        newScript.textContent = scriptData.textContent;
+      }
+      document.body.appendChild(newScript);
+    });
+  }
 
   applyEditMode();
 }
