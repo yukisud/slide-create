@@ -176,7 +176,6 @@ body.app-root {
 .preview .slide canvas {
   max-width: 100% !important;
   max-height: 100% !important;
-  height: auto !important;
 }
 
 .preview [contenteditable="true"] {
