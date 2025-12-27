@@ -452,14 +452,16 @@ body.app-root {
 
   .preview {
     padding: 8px;
-    overflow-x: hidden;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
+  /* スマホでは元サイズで横スクロール可能に */
   .preview .slide-wrap {
-    width: calc(100vw - 32px);
-    transform: scale(calc((100vw - 32px) / 1280));
-    transform-origin: top left;
-    margin-bottom: calc(720px * (100vw - 32px) / 1280 - 720px + 24px);
+    width: 1280px !important;
+    transform: none !important;
+    margin-bottom: 24px;
   }
 
   .selection-toolbar {
