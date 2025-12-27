@@ -150,9 +150,72 @@ function sanitizeHtml(doc) {
   return doc;
 }
 
-function extractSlides(html) {
-  const parser = new DOMParser();
-  const doc = sanitizeHtml(parser.parseFromString(html, 'text/html'));
+function renderSlides() {
+  const html = htmlInput.value.trim();
+  preview.innerHTML = '';
+  if (!html) return;
+
+  let slides = [];
+  let doc = null;
+  try {
+    const parser = new DOMParser();
+    doc = sanitizeHtml(parser.parseFromString(html, 'text/html'));
+    slides = extractSlidesFromDoc(doc);
+  } catch (e) {
+    showErrorModal(e.message, html);
+    return;
+  }
+  if (slides.length === 0) {
+    showErrorModal('スライド要素が見つかりませんでした。class="slide" が含まれているか確認してください。', html);
+    return;
+  }
+
+  // head内の外部スクリプトを検出して先に読み込む
+  const headScripts = [];
+  if (doc && doc.head) {
+    const scripts = Array.from(doc.head.querySelectorAll('script[src]'));
+    scripts.forEach(script => {
+      headScripts.push(script.src);
+      console.log('[DEBUG] Found head script:', script.src);
+    });
+  }
+
+  // head内のスクリプトを先に読み込む
+  let headScriptsLoaded = 0;
+  const totalHeadScripts = headScripts.length;
+
+  const renderSlidesAfterHeadScripts = () => {
+    console.log('[DEBUG] Head scripts loaded, rendering slides');
+    renderSlidesContent(slides);
+  };
+
+  if (totalHeadScripts === 0) {
+    renderSlidesContent(slides);
+  } else {
+    console.log('[DEBUG] Loading head scripts, count:', totalHeadScripts);
+    headScripts.forEach(src => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = () => {
+        headScriptsLoaded++;
+        console.log('[DEBUG] Head script loaded:', src, `(${headScriptsLoaded}/${totalHeadScripts})`);
+        if (headScriptsLoaded === totalHeadScripts) {
+          renderSlidesAfterHeadScripts();
+        }
+      };
+      script.onerror = () => {
+        console.error('[DEBUG] Failed to load head script:', src);
+        headScriptsLoaded++;
+        if (headScriptsLoaded === totalHeadScripts) {
+          renderSlidesAfterHeadScripts();
+        }
+      };
+      document.head.appendChild(script);
+    });
+  }
+}
+
+function extractSlidesFromDoc(doc) {
   const parserError = doc.querySelector('parsererror');
   if (parserError) {
     throw new Error('HTMLの構文解析に失敗しました。タグの閉じ忘れや不正な構造が含まれている可能性があります。');
@@ -166,22 +229,7 @@ function extractSlides(html) {
   return [wrapper];
 }
 
-function renderSlides() {
-  const html = htmlInput.value.trim();
-  preview.innerHTML = '';
-  if (!html) return;
-
-  let slides = [];
-  try {
-    slides = extractSlides(html);
-  } catch (e) {
-    showErrorModal(e.message, html);
-    return;
-  }
-  if (slides.length === 0) {
-    showErrorModal('スライド要素が見つかりませんでした。class="slide" が含まれているか確認してください。', html);
-    return;
-  }
+function renderSlidesContent(slides) {
   slides.forEach((slide, idx) => {
     const wrap = document.createElement('div');
     wrap.className = 'slide-wrap';
