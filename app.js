@@ -105,11 +105,15 @@ function sanitizeHtml(doc) {
     /document\.write/i
   ];
 
+  const allScripts = doc.querySelectorAll('script');
+  console.log('[DEBUG] sanitizeHtml: Found', allScripts.length, 'script tags');
+
   doc.querySelectorAll('script').forEach(el => {
     const src = el.getAttribute('src');
 
     // 外部スクリプト（src属性あり）の場合
     if (src) {
+      console.log('[DEBUG] sanitizeHtml: Checking external script:', src);
       // 信頼できるCDNからのスクリプトかチェック
       const isTrusted = TRUSTED_CDNS.some(cdn => {
         try {
@@ -122,7 +126,10 @@ function sanitizeHtml(doc) {
 
       // 信頼できないスクリプトは削除
       if (!isTrusted) {
+        console.log('[DEBUG] sanitizeHtml: Removing untrusted script:', src);
         el.remove();
+      } else {
+        console.log('[DEBUG] sanitizeHtml: Keeping trusted script:', src);
       }
       return;
     }
@@ -132,8 +139,10 @@ function sanitizeHtml(doc) {
     const isDangerous = DANGEROUS_PATTERNS.some(pattern => pattern.test(scriptContent));
 
     if (isDangerous) {
-      console.warn('Dangerous script pattern detected and removed:', scriptContent.substring(0, 100));
+      console.warn('[DEBUG] sanitizeHtml: Dangerous script pattern detected and removed:', scriptContent.substring(0, 100));
       el.remove();
+    } else {
+      console.log('[DEBUG] sanitizeHtml: Keeping safe inline script, length:', scriptContent.length);
     }
     // 安全と判断されたインラインスクリプトは残す
   });
@@ -183,16 +192,19 @@ function renderSlides() {
 
     // scriptタグを抜き出して保存（外部とインラインを分離）
     const scripts = Array.from(slideNode.querySelectorAll('script'));
+    console.log('[DEBUG] Found scripts:', scripts.length);
     const externalScripts = [];
     const inlineScripts = [];
 
     scripts.forEach(script => {
       if (script.src) {
+        console.log('[DEBUG] External script:', script.src);
         externalScripts.push({
           src: script.src,
           textContent: script.textContent
         });
       } else {
+        console.log('[DEBUG] Inline script length:', script.textContent.length);
         inlineScripts.push({
           textContent: script.textContent
         });
@@ -209,7 +221,9 @@ function renderSlides() {
 
     const executeInlineScripts = () => {
       // すべての外部スクリプトがロード完了後、インラインスクリプトを実行
-      inlineScripts.forEach(data => {
+      console.log('[DEBUG] Executing inline scripts, count:', inlineScripts.length);
+      inlineScripts.forEach((data, idx) => {
+        console.log('[DEBUG] Executing inline script', idx);
         const newScript = document.createElement('script');
         newScript.textContent = data.textContent;
         slideNode.appendChild(newScript);
@@ -218,21 +232,25 @@ function renderSlides() {
 
     if (totalExternal === 0) {
       // 外部スクリプトがない場合はすぐに実行
+      console.log('[DEBUG] No external scripts, executing inline immediately');
       executeInlineScripts();
     } else {
       // 外部スクリプトを追加
+      console.log('[DEBUG] Loading external scripts, count:', totalExternal);
       externalScripts.forEach(data => {
         const newScript = document.createElement('script');
         newScript.src = data.src;
         newScript.onload = () => {
           loadedCount++;
+          console.log('[DEBUG] External script loaded:', data.src, `(${loadedCount}/${totalExternal})`);
           if (loadedCount === totalExternal) {
             // すべての外部スクリプトがロード完了
+            console.log('[DEBUG] All external scripts loaded, executing inline scripts');
             executeInlineScripts();
           }
         };
         newScript.onerror = () => {
-          console.error('Failed to load script:', data.src);
+          console.error('[DEBUG] Failed to load script:', data.src);
           loadedCount++;
           if (loadedCount === totalExternal) {
             executeInlineScripts();
