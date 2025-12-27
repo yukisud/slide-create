@@ -326,22 +326,19 @@ function renderSlidesContent(slides, bodyScripts = []) {
   });
 
   // body内のスクリプト（スライド外）を最後に実行
-  // DOMが完全に準備できてから実行するために遅延
   if (bodyScripts && bodyScripts.length > 0) {
-    console.log('[DEBUG] Scheduling body scripts execution, count:', bodyScripts.length);
-    setTimeout(() => {
-      bodyScripts.forEach((scriptData, idx) => {
-        console.log('[DEBUG] Executing body script', idx);
-        const newScript = document.createElement('script');
-        if (scriptData.src) {
-          newScript.src = scriptData.src;
-        }
-        if (scriptData.textContent) {
-          newScript.textContent = scriptData.textContent;
-        }
-        document.body.appendChild(newScript);
-      });
-    }, 100);
+    console.log('[DEBUG] Executing body scripts, count:', bodyScripts.length);
+    bodyScripts.forEach((scriptData, idx) => {
+      console.log('[DEBUG] Executing body script', idx);
+      const newScript = document.createElement('script');
+      if (scriptData.src) {
+        newScript.src = scriptData.src;
+      }
+      if (scriptData.textContent) {
+        newScript.textContent = scriptData.textContent;
+      }
+      document.body.appendChild(newScript);
+    });
   }
 
   applyEditMode();
