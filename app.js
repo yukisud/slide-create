@@ -181,32 +181,66 @@ function renderSlides() {
     slideNode.classList.add('slide-editor');
     slideNode.dataset.slideIndex = String(idx + 1);
 
-    // scriptタグを抜き出して保存
+    // scriptタグを抜き出して保存（外部とインラインを分離）
     const scripts = Array.from(slideNode.querySelectorAll('script'));
-    const scriptData = scripts.map(script => ({
-      src: script.src,
-      textContent: script.textContent,
-      parent: script.parentNode
-    }));
+    const externalScripts = [];
+    const inlineScripts = [];
 
-    // 元のscriptタグを削除
-    scripts.forEach(script => script.remove());
+    scripts.forEach(script => {
+      if (script.src) {
+        externalScripts.push({
+          src: script.src,
+          textContent: script.textContent
+        });
+      } else {
+        inlineScripts.push({
+          textContent: script.textContent
+        });
+      }
+      script.remove();
+    });
 
     wrap.appendChild(slideNode);
     preview.appendChild(wrap);
 
-    // scriptタグを再作成して実行
-    scriptData.forEach(data => {
-      const newScript = document.createElement('script');
-      if (data.src) {
-        newScript.src = data.src;
-      }
-      if (data.textContent) {
+    // 外部スクリプトを先に読み込む
+    let loadedCount = 0;
+    const totalExternal = externalScripts.length;
+
+    const executeInlineScripts = () => {
+      // すべての外部スクリプトがロード完了後、インラインスクリプトを実行
+      inlineScripts.forEach(data => {
+        const newScript = document.createElement('script');
         newScript.textContent = data.textContent;
-      }
-      // slideNode内の対応する位置に追加
-      slideNode.appendChild(newScript);
-    });
+        slideNode.appendChild(newScript);
+      });
+    };
+
+    if (totalExternal === 0) {
+      // 外部スクリプトがない場合はすぐに実行
+      executeInlineScripts();
+    } else {
+      // 外部スクリプトを追加
+      externalScripts.forEach(data => {
+        const newScript = document.createElement('script');
+        newScript.src = data.src;
+        newScript.onload = () => {
+          loadedCount++;
+          if (loadedCount === totalExternal) {
+            // すべての外部スクリプトがロード完了
+            executeInlineScripts();
+          }
+        };
+        newScript.onerror = () => {
+          console.error('Failed to load script:', data.src);
+          loadedCount++;
+          if (loadedCount === totalExternal) {
+            executeInlineScripts();
+          }
+        };
+        slideNode.appendChild(newScript);
+      });
+    }
   });
 
   applyEditMode();
