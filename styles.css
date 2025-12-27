@@ -172,6 +172,11 @@ body.app-root {
   box-shadow: none !important;
 }
 
+/* Chart.jsなどのcanvas要素のサイズ制限 */
+.preview .slide canvas {
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
 
 .preview [contenteditable="true"] {
   outline: 1px dashed #cbd5f5;
@@ -397,11 +402,13 @@ body.app-root {
   }
 
   .preview {
-    overflow-x: auto;
+    overflow-x: hidden;
   }
 
   .preview .slide-wrap {
-    transform-origin: left top;
+    transform-origin: top left;
+    width: 100%;
+    max-width: 1280px;
   }
 
   .app-header {
@@ -425,12 +432,13 @@ body.app-root {
 
 @media (max-width: 768px) {
   .app-main {
-    padding: 12px;
-    gap: 12px;
+    padding: 8px;
+    gap: 8px;
   }
 
   .panel {
     padding: 12px;
+    border-radius: 12px;
   }
 
   .panel-section {
@@ -442,8 +450,16 @@ body.app-root {
     font-size: 12px;
   }
 
+  .preview {
+    padding: 8px;
+    overflow-x: hidden;
+  }
+
   .preview .slide-wrap {
-    transform: scale(calc(100vw / 1280 * 0.9));
+    width: calc(100vw - 32px);
+    transform: scale(calc((100vw - 32px) / 1280));
+    transform-origin: top left;
+    margin-bottom: calc(720px * (100vw - 32px) / 1280 - 720px + 24px);
   }
 
   .selection-toolbar {
