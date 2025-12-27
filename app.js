@@ -79,7 +79,65 @@ function loadPrompt() {
 }
 
 function sanitizeHtml(doc) {
-  doc.querySelectorAll('script').forEach(el => el.remove());
+  // 信頼できるCDNのホワイトリスト
+  const TRUSTED_CDNS = [
+    'cdnjs.cloudflare.com',
+    'cdn.jsdelivr.net',
+    'unpkg.com',
+    'code.jquery.com',
+    'd3js.org',
+    'cdn.plot.ly',
+    'cdn.bokeh.org',
+    'www.gstatic.com/charts'
+  ];
+
+  // 危険なパターン（基本的なXSS対策）
+  const DANGEROUS_PATTERNS = [
+    /document\.cookie/i,
+    /localStorage/i,
+    /sessionStorage/i,
+    /\.innerHTML\s*=/i,
+    /eval\s*\(/i,
+    /Function\s*\(/i,
+    /setTimeout\s*\(\s*['"`]/i,
+    /setInterval\s*\(\s*['"`]/i,
+    /window\.location/i,
+    /document\.write/i
+  ];
+
+  doc.querySelectorAll('script').forEach(el => {
+    const src = el.getAttribute('src');
+
+    // 外部スクリプト（src属性あり）の場合
+    if (src) {
+      // 信頼できるCDNからのスクリプトかチェック
+      const isTrusted = TRUSTED_CDNS.some(cdn => {
+        try {
+          const url = new URL(src, window.location.href);
+          return url.hostname.includes(cdn);
+        } catch {
+          return false;
+        }
+      });
+
+      // 信頼できないスクリプトは削除
+      if (!isTrusted) {
+        el.remove();
+      }
+      return;
+    }
+
+    // インラインスクリプトの場合、危険なパターンをチェック
+    const scriptContent = el.textContent || '';
+    const isDangerous = DANGEROUS_PATTERNS.some(pattern => pattern.test(scriptContent));
+
+    if (isDangerous) {
+      console.warn('Dangerous script pattern detected and removed:', scriptContent.substring(0, 100));
+      el.remove();
+    }
+    // 安全と判断されたインラインスクリプトは残す
+  });
+
   return doc;
 }
 
@@ -122,8 +180,33 @@ function renderSlides() {
     const slideNode = slide.cloneNode(true);
     slideNode.classList.add('slide-editor');
     slideNode.dataset.slideIndex = String(idx + 1);
+
+    // scriptタグを抜き出して保存
+    const scripts = Array.from(slideNode.querySelectorAll('script'));
+    const scriptData = scripts.map(script => ({
+      src: script.src,
+      textContent: script.textContent,
+      parent: script.parentNode
+    }));
+
+    // 元のscriptタグを削除
+    scripts.forEach(script => script.remove());
+
     wrap.appendChild(slideNode);
     preview.appendChild(wrap);
+
+    // scriptタグを再作成して実行
+    scriptData.forEach(data => {
+      const newScript = document.createElement('script');
+      if (data.src) {
+        newScript.src = data.src;
+      }
+      if (data.textContent) {
+        newScript.textContent = data.textContent;
+      }
+      // slideNode内の対応する位置に追加
+      slideNode.appendChild(newScript);
+    });
   });
 
   applyEditMode();
