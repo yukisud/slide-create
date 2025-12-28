@@ -246,6 +246,28 @@ function extractSlidesFromDoc(doc) {
 }
 
 function renderSlidesContent(slides, bodyScripts = []) {
+  let slidesCompleted = 0;
+  const totalSlides = slides.length;
+
+  const executeBodyScripts = () => {
+    // すべてのスライドのスクリプト読み込みが完了後、body内のスクリプトを実行
+    if (bodyScripts && bodyScripts.length > 0) {
+      console.log('[DEBUG] All slides loaded, executing body scripts, count:', bodyScripts.length);
+      bodyScripts.forEach((scriptData, idx) => {
+        console.log('[DEBUG] Executing body script', idx);
+        const newScript = document.createElement('script');
+        if (scriptData.src) {
+          newScript.src = scriptData.src;
+        }
+        if (scriptData.textContent) {
+          newScript.textContent = scriptData.textContent;
+        }
+        document.body.appendChild(newScript);
+      });
+    }
+    applyEditMode();
+  };
+
   slides.forEach((slide, idx) => {
     const wrap = document.createElement('div');
     wrap.className = 'slide-wrap';
@@ -292,6 +314,13 @@ function renderSlidesContent(slides, bodyScripts = []) {
         newScript.textContent = data.textContent;
         slideNode.appendChild(newScript);
       });
+
+      // このスライドの処理完了
+      slidesCompleted++;
+      console.log('[DEBUG] Slide completed:', slidesCompleted, '/', totalSlides);
+      if (slidesCompleted === totalSlides) {
+        executeBodyScripts();
+      }
     };
 
     if (totalExternal === 0) {
@@ -311,20 +340,21 @@ function renderSlidesContent(slides, bodyScripts = []) {
           // Chart.jsが読み込まれたら、バーグラフの幅を調整するためにグローバル設定を上書き
           if (data.src.includes('chart') && typeof Chart !== 'undefined') {
             console.log('[DEBUG] Configuring Chart.js defaults for thicker bars');
-            // Chart.js v3以降の正しいデフォルト設定方法
-            if (Chart.defaults.set) {
-              Chart.defaults.set('datasets.bar', {
-                barPercentage: 0.9,
-                categoryPercentage: 0.9
-              });
-            } else {
-              // 古いバージョン用のフォールバック
-              Chart.defaults.global = Chart.defaults.global || {};
-              Chart.defaults.global.datasets = Chart.defaults.global.datasets || {};
-              Chart.defaults.global.datasets.bar = {
-                barPercentage: 0.9,
-                categoryPercentage: 0.9
-              };
+            try {
+              // Chart.js v3以降の正しいデフォルト設定方法
+              // barPercentage: バーの太さ (0.95 = かなり太い)
+              // categoryPercentage: カテゴリ幅 (0.95 = 余白が少ない)
+              if (!Chart.defaults.datasets) {
+                Chart.defaults.datasets = {};
+              }
+              if (!Chart.defaults.datasets.bar) {
+                Chart.defaults.datasets.bar = {};
+              }
+              Chart.defaults.datasets.bar.barPercentage = 0.95;
+              Chart.defaults.datasets.bar.categoryPercentage = 0.95;
+              console.log('[DEBUG] Chart.js defaults configured successfully');
+            } catch (e) {
+              console.error('[DEBUG] Failed to configure Chart.js defaults:', e);
             }
           }
 
@@ -345,24 +375,6 @@ function renderSlidesContent(slides, bodyScripts = []) {
       });
     }
   });
-
-  // body内のスクリプト（スライド外）を最後に実行
-  if (bodyScripts && bodyScripts.length > 0) {
-    console.log('[DEBUG] Executing body scripts, count:', bodyScripts.length);
-    bodyScripts.forEach((scriptData, idx) => {
-      console.log('[DEBUG] Executing body script', idx);
-      const newScript = document.createElement('script');
-      if (scriptData.src) {
-        newScript.src = scriptData.src;
-      }
-      if (scriptData.textContent) {
-        newScript.textContent = scriptData.textContent;
-      }
-      document.body.appendChild(newScript);
-    });
-  }
-
-  applyEditMode();
 }
 
 function applyEditMode() {
@@ -849,7 +861,9 @@ function restoreState() {
 }
 
 // ズーム機能
-let currentZoom = 1;
+// モバイル判定
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+let currentZoom = isMobile ? 0.25 : 1; // スマホは25%、PCは100%
 const zoomOutBtn = document.getElementById('zoomOutBtn');
 const zoomInBtn = document.getElementById('zoomInBtn');
 const zoomResetBtn = document.getElementById('zoomResetBtn');
@@ -864,6 +878,9 @@ function updateZoom(zoom) {
   zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
 }
 
+// 初期ズーム設定を適用
+updateZoom(currentZoom);
+
 zoomOutBtn.addEventListener('click', () => {
   updateZoom(currentZoom - 0.1);
 });
@@ -873,7 +890,7 @@ zoomInBtn.addEventListener('click', () => {
 });
 
 zoomResetBtn.addEventListener('click', () => {
-  updateZoom(1);
+  updateZoom(isMobile ? 0.25 : 1); // スマホは25%、PCは100%にリセット
 });
 
 htmlInput.addEventListener('input', () => {
