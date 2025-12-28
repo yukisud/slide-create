@@ -308,11 +308,24 @@ function renderSlidesContent(slides, bodyScripts = []) {
           loadedCount++;
           console.log('[DEBUG] External script loaded:', data.src, `(${loadedCount}/${totalExternal})`);
 
-          // Chart.jsが読み込まれたら、バーグラフの幅を調整
+          // Chart.jsが読み込まれたら、バーグラフの幅を調整するためにグローバル設定を上書き
           if (data.src.includes('chart') && typeof Chart !== 'undefined') {
             console.log('[DEBUG] Configuring Chart.js defaults for thicker bars');
-            Chart.defaults.datasets.bar.barPercentage = 0.9;
-            Chart.defaults.datasets.bar.categoryPercentage = 0.9;
+            // Chart.js v3以降の正しいデフォルト設定方法
+            if (Chart.defaults.set) {
+              Chart.defaults.set('datasets.bar', {
+                barPercentage: 0.9,
+                categoryPercentage: 0.9
+              });
+            } else {
+              // 古いバージョン用のフォールバック
+              Chart.defaults.global = Chart.defaults.global || {};
+              Chart.defaults.global.datasets = Chart.defaults.global.datasets || {};
+              Chart.defaults.global.datasets.bar = {
+                barPercentage: 0.9,
+                categoryPercentage: 0.9
+              };
+            }
           }
 
           if (loadedCount === totalExternal) {
@@ -846,6 +859,8 @@ function updateZoom(zoom) {
   currentZoom = Math.max(0.25, Math.min(2, zoom));
   preview.style.transform = `scale(${currentZoom})`;
   preview.style.transformOrigin = 'top left';
+  preview.style.width = `${100 / currentZoom}%`;
+  preview.style.height = `${100 / currentZoom}%`;
   zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
 }
 
