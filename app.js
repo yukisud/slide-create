@@ -861,7 +861,9 @@ function restoreState() {
 }
 
 // ズーム機能
-let currentZoom = 1;
+// モバイル判定
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+let currentZoom = isMobile ? 0.25 : 1; // スマホは25%、PCは100%
 const zoomOutBtn = document.getElementById('zoomOutBtn');
 const zoomInBtn = document.getElementById('zoomInBtn');
 const zoomResetBtn = document.getElementById('zoomResetBtn');
@@ -876,6 +878,9 @@ function updateZoom(zoom) {
   zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
 }
 
+// 初期ズーム設定を適用
+updateZoom(currentZoom);
+
 zoomOutBtn.addEventListener('click', () => {
   updateZoom(currentZoom - 0.1);
 });
@@ -885,7 +890,7 @@ zoomInBtn.addEventListener('click', () => {
 });
 
 zoomResetBtn.addEventListener('click', () => {
-  updateZoom(1);
+  updateZoom(isMobile ? 0.25 : 1); // スマホは25%、PCは100%にリセット
 });
 
 htmlInput.addEventListener('input', () => {
