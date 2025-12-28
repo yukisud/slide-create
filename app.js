@@ -312,18 +312,20 @@ function renderSlidesContent(slides, bodyScripts = []) {
           if (data.src.includes('chart') && typeof Chart !== 'undefined') {
             console.log('[DEBUG] Configuring Chart.js defaults for thicker bars');
             // Chart.js v3以降の正しいデフォルト設定方法
+            // barPercentage: バーの太さ (0.95 = かなり太い)
+            // categoryPercentage: カテゴリ幅 (0.95 = 余白が少ない)
             if (Chart.defaults.set) {
               Chart.defaults.set('datasets.bar', {
-                barPercentage: 0.9,
-                categoryPercentage: 0.9
+                barPercentage: 0.95,
+                categoryPercentage: 0.95
               });
             } else {
               // 古いバージョン用のフォールバック
               Chart.defaults.global = Chart.defaults.global || {};
               Chart.defaults.global.datasets = Chart.defaults.global.datasets || {};
               Chart.defaults.global.datasets.bar = {
-                barPercentage: 0.9,
-                categoryPercentage: 0.9
+                barPercentage: 0.95,
+                categoryPercentage: 0.95
               };
             }
           }
