@@ -307,6 +307,14 @@ function renderSlidesContent(slides, bodyScripts = []) {
         newScript.onload = () => {
           loadedCount++;
           console.log('[DEBUG] External script loaded:', data.src, `(${loadedCount}/${totalExternal})`);
+
+          // Chart.jsが読み込まれたら、バーグラフの幅を調整
+          if (data.src.includes('chart') && typeof Chart !== 'undefined') {
+            console.log('[DEBUG] Configuring Chart.js defaults for thicker bars');
+            Chart.defaults.datasets.bar.barPercentage = 0.9;
+            Chart.defaults.datasets.bar.categoryPercentage = 0.9;
+          }
+
           if (loadedCount === totalExternal) {
             // すべての外部スクリプトがロード完了
             console.log('[DEBUG] All external scripts loaded, executing inline scripts');
@@ -826,6 +834,32 @@ function restoreState() {
   const url = localStorage.getItem(STORAGE_KEYS.geminiUrl);
   if (url) geminiUrlInput.value = url;
 }
+
+// ズーム機能
+let currentZoom = 1;
+const zoomOutBtn = document.getElementById('zoomOutBtn');
+const zoomInBtn = document.getElementById('zoomInBtn');
+const zoomResetBtn = document.getElementById('zoomResetBtn');
+const zoomLevel = document.getElementById('zoomLevel');
+
+function updateZoom(zoom) {
+  currentZoom = Math.max(0.25, Math.min(2, zoom));
+  preview.style.transform = `scale(${currentZoom})`;
+  preview.style.transformOrigin = 'top left';
+  zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
+}
+
+zoomOutBtn.addEventListener('click', () => {
+  updateZoom(currentZoom - 0.1);
+});
+
+zoomInBtn.addEventListener('click', () => {
+  updateZoom(currentZoom + 0.1);
+});
+
+zoomResetBtn.addEventListener('click', () => {
+  updateZoom(1);
+});
 
 htmlInput.addEventListener('input', () => {
   localStorage.setItem(STORAGE_KEYS.html, htmlInput.value);
