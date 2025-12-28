@@ -1,376 +1,1187 @@
-以下の設計ルールに基づき、提供された記事タイトルとセクション情報から、HTML5 + Tailwind CSSベースのプレゼンテーションスライドを生成してください。
+下記でprompt.mdファイルを作成して
 
----
 
-【0. ライブラリ読み込み（必須）】
-<head> 内で以下を **必ず** 読み込むこと。
+# 🎯 最適化されたスライド生成プロンプト
+
+## プロンプト本文
+
+-----
+
+あなたは卓越したWEBデザイナー兼マーケターです。
+提供された記事タイトルとセクション情報から、HTML5 + Tailwind CSSベースのプレゼンテーションスライドを生成してください。
+
+-----
+
+## 【0. ライブラリ読み込み（必須）】
+
+`<head>` 内で以下を**必ず**読み込むこと：
 
 ```html
-<!-- Tailwind CSS v3 (JIT + arbitrary values) -->
 <script src="https://cdn.tailwindcss.com"></script>
-
-<!-- Google Fonts: Noto Sans JP -->
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-
-<!-- Font Awesome -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+<!-- Chart.js（グラフ使用時） -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    body {
+        background-color: #f3f4f6;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 40px;
+        padding: 40px;
+        margin: 0;
+        font-family: 'Noto Sans JP', sans-serif;
+    }
+    
+    /* スライド共通スタイル */
+    .slide {
+        font-family: 'Noto Sans JP', sans-serif;
+    }
+</style>
 ```
 
-【1. 基本要件定義】
+-----
 
-■ コンテンツ要件
-- 提供された見出し（h1とh2）ごとに1スライド作成：記事の冒頭（タイトル）と見出しタイトル冒頭にh2と記載あるor##が記載あるもののみスライド作成。
-- タイトル、h2見出しについては変更せず、そのまま出力すること
-- 内容を要点2〜3個に要約
-- 表・図解・アイコン・ビジュアル・グラフ要素を組み合わせる
+## 【1. 基本要件定義】
+
+### ■ コンテンツ要件
+
+- 提供された見出し（h1とh2）ごとに1スライド作成
+- **タイトル、h2見出しは変更せず、そのまま出力**
+- 内容を要点2〜4個に要約
+- **データがある場合は必ずグラフ（棒・円・折れ線）を使用**
+- 表・図解・アイコン・ビジュアル要素を組み合わせる
 - 情報は5秒以内で理解できる構成にする
-- 外枠をテーマ色でつける
 
-■ 技術要件
+### ■ 技術要件
+
 - HTML5 + CSS3 + Tailwind CSS（CDN利用）
-- 固定サイズ：1280px × 720px（横幅 w-[1280px] を固定し、高さは min-h-[720px]。内容が多い場合のみ自動伸長。）
+- **サイズ指定厳守**: `w-[1280px] min-h-[720px]`
 - フォント：Google Fonts「Noto Sans JP」
 - アイコン：Font Awesome（CDN版）
 - レスポンシブ対応：不要
-- **`justify-center`と`my-auto`は使用禁止**（書き出し時にズレる原因）。代わりにコンテンツラッパーで`pt-20`の固定パディングを使用。
-- bodyのbackground-color: #fff;
-- slideのshadowはつけない。hover Actionもつけない。
+- bodyのbackground-color: #f3f4f6
+- slideのbackground-color: #fff
+- **shadowやhover Actionはつけない**
 
-■ ユーザビリティ要件
-- 最小フォントサイズ：14px以上
-- コントラスト比：4.5:1以上
-- 階層構造を明確化
-- 読み取りにかかる時間は3秒以内
+-----
 
----
+## 【2. 配色・トンマナ定義（最重要）】
 
-【2. テーマ別アクセントカラー定義】
-背景はすべて `bg-white` に固定し、**アクセントとしてテーマカラーを以下に準拠して使用**：
+### 🎨 メインテーマカラーの決定
 
-| テーマ分類         | キーワード例                 | Tailwind適用例                                        |
-|--------------------|------------------------------|-------------------------------------------------------|
-| Business           | マーケティング、デザイン、分析・経営・数字 | `text-[#002f5d]` `border-[#036ad1]` `bg-[#036ad1]/10` |
-| Tech               | AI・ChatGPT・IT              | `text-[#1a237e]` `border-[#3949ab]` `bg-[#5c6bc0]/10` |
-| X                  | X                            | `text-[#000000]` `border-[#000000]` `bg-[#000000]/10` |
-| Creative           | Instagram・デザイン          | `text-[#8e24aa]` `border-[#ab47bc]` `bg-[#ba68c8]/10` |
-| Finance            | 分析・経営・数字             | `text-[#002f5d]` `border-[#036ad1]` `bg-[#036ad1]/10` |
-| Google             | SEO、MEO,Map、Google、広告、SEMなど | `text-[#4285F4]` `border-[#EA4335]` `bg-[#FBBC05]/10` |
-| 動画               | Youtube、動画                | `text-[#FF0000]` `border-[#FF0000]` `bg-[#FF0000]/10` |
+記事内容から最適な「テーマカラー」を**1色**決定し、スライド全体で統一使用：
 
-※ `/10` は背景やカード要素で透明度10%の色を使用するTailwindの記法
+|テーマ例              |カラーコード         |グラデーション          |
+|------------------|---------------|-----------------|
+|Business (信頼)     |#036ad1 (青)    |#036ad1 → #0288d1|
+|Video/YouTube (情熱)|#FF0000 (赤)    |#FF0000 → #FF4444|
+|Tech (知性)         |#3949ab (インディゴ)|#3949ab → #5c6bc0|
+|Creative (独創)     |#ab47bc (紫)    |#ab47bc → #ce93d8|
+|Marketing (成長)    |#43a047 (緑)    |#43a047 → #66bb6a|
+|Finance (安定)      |#1565c0 (紺)    |#1565c0 → #1976d2|
 
----
+### 🚫 配色の絶対ルール（4色以内）
 
-【2.5. スライドタイプ定義と番号付与ルール】
+1. **プライマリーカラー**: テーマカラー（枠線、見出し、強調）
+1. **セカンダリーカラー**: プライマリーの10%透過版（背景アクセント）
+1. **テキストカラー**: #1a1a1a（本文）、#6b7280（サブテキスト）
+1. **背景カラー**: #ffffff（基本）、#f9fafb（セクション区切り）
 
-■ スライドタイプ（3種類のみ）
+### ✅ 機能的な色の例外
 
-| タイプ | 用途 | 番号 | 背景アイコン |
-|--------|------|------|--------------|
-| A. タイトルスライド | 1枚目（記事タイトル） | なし | あり（必須） |
-| B. コンテンツスライド | h2見出しごと | あり（自動付与） | あり（必須） |
-| C. まとめスライド | 最終スライド | なし | あり（必須） |
+- 成功・チェック：#22c55e（緑）
+- 失敗・注意：#ef4444（赤）
+- 警告：#f59e0b（オレンジ）
+- 無効・中立：#9ca3af（グレー）
 
-■ 番号の自動付与ルール（重要）
-- **タイトルスライド**: 番号バッジなし
-- **コンテンツスライド**: h2の出現順に「1, 2, 3...」と自動付与
-- **まとめスライド**: 番号バッジなし（「まとめ」というテキストのみ）
-- 番号は必ず連番とし、飛び番号や重複は禁止
+### ⛔ 禁止事項
 
-■ コンテンツ密度（適正範囲）
+- テーマと無関係な装飾色の使用
+- 4色を超える配色
+- 彩度の異なる類似色の混在
 
-| 項目 | 推奨 | 注意 |
-|------|------|------|
-| 要点・箇条書き | 3〜6項目 | 各項目に説明文（1〜2行）を必ずつける |
-| カード内テキスト | 2〜4行 | 見出しだけのカードは禁止 |
-| カード | 2〜4個 | 内容の詳細さを優先 |
-| グリッド列 | 2〜3列 | 各セルに十分な情報を入れる |
-| テーブル行 | 3〜6行 | ヘッダー+データ行で構成 |
+-----
 
-※スライド全体の **縦方向60〜80%** を使い切ること。余白が多すぎる場合は情報を追加するか要素を大きくする。
-※**簡素すぎるスライドは禁止**。見出しと箇条書きだけでなく、具体的な説明・数値・例を含めること。
+## 【3. スライド構造（HTML）】
 
----
-
-【3. スライド構造（HTML） - 自由レイアウト + 厳格コンポーネント】
-スライドのレイアウト（2カラム、3カラム、グリッド、中央配置など）は、コンテンツの内容に合わせて**自由に構成して構いません**。
-ただし、**以下の「コンポーネント」を使用する場合は、必ず指定のHTML構造を守ってください**。これらを守らないと書き出し時にズレが生じます。
-
-■ 必須コンポーネント構造（変更禁止）
-
-1. **巨大アイコン（背景装飾）**
-   ```html
-   <div class="absolute -bottom-16 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
-     <i class="fab fa-[アイコン名] text-[800px] text-gray-100 opacity-50 leading-none"></i>
-   </div>
-   ```
-   ※必ず `div.absolute` でラップし、`-bottom-16`を使用。アイコンの上部がスライド内に見える位置。
-
-2. **番号付き見出し（セクションタイトル）**
-   ```html
-   <h1 class="text-[40px] font-bold text-[テーマ色] mb-10 flex items-center">
-     <span class="bg-[テーマ色] text-white w-14 h-14 rounded-full flex items-center justify-center text-2xl mr-4">
-       {{番号}}
-     </span>
-     {{タイトル}}
-   </h1>
-   ```
-   ※必ず `h1.flex` の中に `span.rounded-full.flex` を入れる構造にすること。
-
-3. **スライド枠（共通）**
-   ```html
-   <div class="slide relative bg-white w-[1280px] h-[720px] border-8 border-[テーマ色] flex flex-col overflow-hidden">
-     <!-- コンテンツ -->
-   </div>
-   ```
-   ※ `w-[1280px] h-[720px]` と `overflow-hidden` は必須。
-   ※ **`justify-center`と`my-auto`は使用禁止**（書き出し時にズレる原因）。代わりにコンテンツラッパーで`pt-20`を使う。
-
-■ レイヤー構造ルール（重なり順の安定化）
-- **背景アイコン**: `z-0`（最背面）+ `absolute` + `-bottom-16`
-- **メインコンテンツ**: `z-10 relative px-16 pt-20 w-full` でラップする（**固定pt-20必須**）
-- **独立したカード/ボックス**: `relative z-10` を個別に付与（特に `bg-white/90` 等の半透明背景使用時は必須）
-- z-indexを使う要素は必ず `position: relative` または `absolute` を指定
-
-■ 位置安定化ルール（ズレ防止の核心）
-- **`justify-center`は使用禁止** → 書き出し時にコンテンツが下にズレる原因
-- **`my-auto`も使用禁止** → margin autoは書き出し時に正しく計算されないことがある
-- **`items-center`での垂直中央も禁止** → カード内でも同様にズレる
-- **代わりに固定パディング`pt-20`を使用** → 常に同じ位置から開始される
-- スライド枠は `flex flex-col` のみ（`justify-center`なし）
-- 720pxの高さで上から80px（pt-20）開始すると、視覚的にほぼ中央になる
-
-■ Flex使用ルール（重要）
-| 用途 | OK | NG |
-|------|----|----|
-| 横並び（アイコン+テキスト） | `flex items-center` | - |
-| カード内の垂直中央 | `pt-4 pb-4`（パディング） | `flex items-center`で縦中央 |
-| 複数カード横並び | `grid grid-cols-3 gap-4` | `flex justify-around` |
-| ボックス内コンテンツ | ブロック要素 + padding | flex + centering |
-
-※**flexは横並び専用**。縦の配置は必ずパディングで制御する。
+全スライド共通で以下の構造を**厳守**：
 
 ```html
-<!-- 正しい構造例（justify-center禁止、固定パディングで配置） -->
-<div class="slide relative bg-white w-[1280px] h-[720px] border-8 border-[テーマ色] flex flex-col overflow-hidden">
-    <div class="absolute -bottom-16 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
-        <i class="fab fa-[アイコン] text-[800px] text-gray-100 opacity-50 leading-none"></i>
-    </div>
-    <div class="z-10 relative px-16 pt-20 w-full">
-        <!-- メインコンテンツ（スライドの60-80%を使い切る） -->
-        <div class="bg-white/90 ... relative z-10"><!-- 半透明カードも z-10 --></div>
-    </div>
-</div>
-```
+<div class="slide relative w-[1280px] min-h-[720px] bg-white flex flex-col overflow-hidden">
+  
+  <!-- ボーダー（最前面） -->
+  <div class="absolute inset-0 border-8 border-[テーマカラー] z-30 pointer-events-none rounded-none"></div>
 
-■ 書き出し互換性ルール（html2canvas対応）
-以下のCSSプロパティは画像書き出し時にズレや未反映が発生するため、使用を制限する：
+  <!-- ロゴ -->
+  <img src="https://umy-game.com/wp-content/uploads/2025/06/UMY-GAME_LOGO_B-02.png" 
+       alt="UMY GAME Logo" 
+       class="absolute top-10 right-12 w-64 z-40">
 
-| プロパティ | 制限 | 代替案 |
-|-----------|------|--------|
-| `backdrop-filter` | **使用禁止** | 背景色で代用 (`bg-white/90`等) |
-| `box-shadow` | `shadow-sm` `shadow-md` まで | 複雑な影は避ける |
-| `filter: blur()` | **使用禁止** | opacity で代用 |
-| `transform` | `rotate` `scale` のみ | 3D変換は避ける |
-| `gradient` | 2色までの `linear-gradient` | 複雑なグラデーション禁止 |
-| `clip-path` | **使用禁止** | border-radius で代用 |
-| `mask-image` | **使用禁止** | - |
-
-※これらを守ることで、サーバーなしでもブラウザ書き出しで高精度な出力が可能。
-
----
-
-【4. タイポグラフィ設定】
-
-* `font-family`: `'Noto Sans JP', sans-serif`
-
-* 階層サイズ：
-
-| 種別 | クラス例 | 備考 |
-|------|---------|------|
-| 巨大アイコン | `text-[800px]` | 固定 |
-| h1 (タイトル) | `text-[50px] font-extrabold` または `text-[80px]` | slide 1 |
-| h1 (番号付) | `text-[40px] font-bold` | 各セクション |
-| h2 | `text-[30px] font-semibold border-l-8 border-[テーマ色] pl-6` | |
-| h3 | `text-[24px] font-medium` | カード内見出し |
-| 本文 | `text-lg` (16px) | 最小 14px |
-
-* スペーシング：
-  * `line-height: 1.6`（本文）、`1.2`（見出し）
-  * `letter-spacing: 0.05em`
-
----
-
-【5. コンポーネント規則（推奨パターン）】
-レイアウトは自由ですが、以下のコンポーネントを活用してリッチなデザインにしてください。
-
-1. 情報カード (.info-card)
-```html
-<div class="info-card border-2 border-[テーマ色] p-6 bg-[テーマ色]/5 rounded-lg mb-6">
-  <h3 class="text-[24px] font-bold text-[テーマ色] mb-3 flex items-center">
-    <i class="fas fa-info-circle mr-3"></i>
-    {{タイトル}}
-  </h3>
-  <p class="text-lg text-gray-700 leading-relaxed">{{本文}}</p>
-</div>
-```
-
-2. 比較カード (.comparison-card)
-```html
-<div class="comparison-card grid grid-cols-2 gap-8 mt-6">
-  <!-- 比較要素を自由に配置 -->
-</div>
-```
-
-3. チェックリスト (.feature-item)
-```html
-<ul class="space-y-4 mt-4">
-  <li class="feature-item flex items-start p-4 bg-gray-50 rounded-lg border border-gray-100">
-    <div class="flex-shrink-0 w-8 h-8 rounded-full bg-[テーマ色]/10 flex items-center justify-center mr-4">
-      <i class="fas fa-check text-[テーマ色] text-sm"></i>
-    </div>
-    <div>
-      <span class="block text-lg font-bold text-gray-800 mb-1">{{項目名}}</span>
-      <span class="block text-base text-gray-600">{{説明文}}</span>
-    </div>
-  </li>
-</ul>
-```
-
-4. ステップフロー (.step-item)
-```html
-<div class="flex items-center justify-between mt-8 relative">
-  <!-- 矢印線やステップ要素を配置 -->
-</div>
-```
-
-5. 強調カード (.highlight-card)
-```html
-<div class="highlight-card bg-gradient-to-br from-[テーマ色]/10 to-transparent border-l-8 border-[テーマ色] p-6 rounded-r-lg shadow-sm my-6">
-  <!-- 強調コンテンツ -->
-</div>
-```
-
-* **巨大アイコン**: 必ず `div.absolute` でラップし、`pointer-events-none` を付与。クラスは `text-[800px]` を使用。
-* **数字バッジ**: 必ず `span.bg-[テーマ色].rounded-full.flex.items-center.justify-center` の構造を使用。`div`ではなく`span`推奨だが、`flex`を指定すること。
-* **スライド枠**: `w-[1280px] h-[720px]` (min-hではなくh固定)、`overflow-hidden` を必ず付与。
-
----
-
-【6. データビジュアル表現】
-
-* テーブル：
-  * 最大4列、`border-[テーマ色]/30` の薄い線
-  * ヘッダーに `bg-[rgba(0,0,0,0.05)]`
-
-* バーグラフ：幅を Tailwind `w-[%]` で表現
-* 円、棒、折れ線グラフについても視覚的に表現
-
-* アイコン数値表示例：
-  ```html
-  <div class="flex items-center gap-2">
-    <i class="fas fa-chart-line text-[テーマ色] text-xl"></i>
-    <span class="text-lg font-semibold">85%</span>
+  <!-- ⚠️ コピーライト（必須・全スライドに必ず配置） -->
+  <div class="absolute bottom-4 w-full text-center text-xs text-gray-400 font-medium z-40 pointer-events-none tracking-widest">
+      © 2025 umygame Inc.
   </div>
-  ```
 
----
+  <!-- 背景アイコン（装飾） -->
+  <div class="absolute -bottom-20 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
+     <i class="fas fa-[アイコン名] text-[500px] text-gray-200 opacity-15 leading-none"></i>
+  </div>
 
-【7. アクセシビリティ要件】
+  <!-- メインコンテンツ（⚠️ justify-center で垂直中央寄せ） -->
+  <div class="content-wrapper relative z-10 p-16 flex-1 flex flex-col justify-center">
+    <!-- ここにコンテンツ -->
+  </div>
 
-* コントラスト比 4.5:1以上
-* 最小文字サイズ：14px
-* 色だけに依存しない構造（アイコン + テキスト）
-* `h1` は1スライドに1つのみ
-
----
-
-【8. リソース要件】
-
-* Tailwind CSS（CDN）
-* Font Awesome（CDN）
-* Google Fonts Noto Sans JP（CDN）
-* 画像は極力SVG（最大500KB）、Lazy Load不要
-
----
-
-【9. 品質チェックリスト】
-
-■ 構造チェック（必須）
-* ☐ 必須コンポーネント構造（巨大アイコン・番号付き見出し・スライド枠）を守っているか
-* ☐ 巨大アイコンのクラスは `text-[800px]` かつ `-bottom-16` になっているか
-* ☐ 数字バッジは `flex items-center justify-center` を持っているか
-* ☐ スライド枠に `overflow-hidden` があるか
-* ☐ **スライド枠に`justify-center`を使っていないか**（禁止）
-* ☐ **カード/ボックス内で`items-center`による垂直中央をしていないか**（paddingで代用）
-* ☐ 全スライドに背景アイコン（z-0 + absolute）があるか
-* ☐ メインコンテンツが `z-10 relative px-16 pt-20 w-full` でラップされているか（固定pt-20必須）
-* ☐ 半透明背景のカード/ボックスに `relative z-10` があるか
-
-■ 書き出し互換性チェック（必須）
-* ☐ backdrop-filter を使っていないか
-* ☐ filter: blur() を使っていないか
-* ☐ clip-path / mask-image を使っていないか
-* ☐ box-shadow は shadow-sm/md 程度か
-* ☐ gradient は2色までのlinear-gradientか
-
-■ 番号チェック（必須）
-* ☐ タイトルスライド（1枚目）に番号バッジがないか
-* ☐ コンテンツスライドの番号が1から連番になっているか
-* ☐ まとめスライドに番号バッジがないか
-* ☐ 番号の飛び・重複がないか
-
-■ コンテンツ密度チェック（必須）
-* ☐ スライドの縦方向60〜80%を使い切っているか
-* ☐ 余白が多すぎないか（情報追加または要素拡大で調整）
-* ☐ **内容が簡素すぎないか**（各スライドに具体的な情報・説明文を含めること）
-* ☐ 箇条書きは3〜6項目で、各項目に説明文があるか
-* ☐ カードは2〜4個で、中身が1行だけになっていないか
-
-■ デザインチェック
-* ☐ W3C HTML5準拠
-* ☐ コントラスト・フォントサイズ確認
-* ☐ 見出し階層構造正しいか
-* ☐ Tailwindクラスで装飾されているか
-* ☐ テーマカラーがアクセントに反映されているか
-* ☐ 背景は白で統一されているか
-
----
-
-【10. 出力内容】
-上記の必須コンポーネント構造のHTML構造を厳格に守り、コンテンツを流し込んで出力してください。
-構造を勝手に簡略化したり、クラスを減らしたりしないでください。
-
-* `<div class="slide">...</div>` 構造で出力
-* 1見出し = 1スライド
-* スライド数は提供されたセクションの数と同数
-* 各スライドには：
-  * 白背景（`bg-white`）
-  * 太枠 (`border-8`) + テーマ色
-  * テーマカラー: タイトル・枠線・左ライン・カード枠・アイコン・薄背景
-  * 見出し
-  * 2〜3項目のリスト・表・グラフ（表示コンテンツが少ないようであれば適宜調整）
-  * アイコン（Font Awesome）
-  * アクセントカラー適用済み
-
-* タイトルスライドデザインルール
-  * 背景装飾: テーマを象徴するFont Awesomeアイコンを1つ選び、巨大化させます (text-[800px])。
-    そのアイコンを、スライドの右下に少し傾けて (rotate-[-15deg])、薄いグレー (text-gray-100) で背景のように配置します。
-  * メインタイトル: タイトルを**3つの意味の塊（パート）**に分けます。
-    各パートのフォントサイズ、太さ、色を大胆に変更し、視覚的な階層とインパクトを生み出します。
-    最も重要なキーワードが一番目立つようにスタイリングします。
-  * サブタイトル: スライドのテーマカラーで作成した帯の中に、白文字で力強く配置します。
-
----
-
-【11. 実行対象】
-
-```text
-記事タイトル：{{ここにタイトルを記載}}
-セクション構成：
-- セクション1：{{見出し}} → 要点1, 要点2, ...
-- セクション2：{{見出し}} → 要点1, 要点2, ...
-...
+</div>
 ```
 
-※キーワードからテーマを自動判定し、**アクセントにカラーを適用、背景は常に白**にしてください。
+### ⚠️ コピーライト配置ルール（必須）
+
+**全スライドに必ずコピーライトを配置すること。**
+
+|スライドタイプ |コピーライトのスタイル                    |
+|--------|-------------------------------|
+|タイトルスライド|`text-white/50` （白背景なので白文字・半透明）|
+|通常スライド  |`text-gray-400` （白背景なので灰色文字）   |
+|まとめスライド |`text-white/60` （色背景なので白文字・半透明）|
+
+```html
+<!-- 通常スライド用 -->
+<div class="absolute bottom-4 w-full text-center text-xs text-gray-400 font-medium z-40 pointer-events-none tracking-widest">
+    © 2025 umygame Inc.
+</div>
+
+<!-- タイトル・まとめスライド用（色背景） -->
+<div class="absolute bottom-4 w-full text-center text-xs text-white/50 font-medium z-40 pointer-events-none tracking-widest">
+    © 2025 umygame Inc.
+</div>
+```
+
+### ⚠️ 背景アイコン配置ルール（必須）
+
+**全スライドに必ず背景の巨大アイコンを配置すること。**
+
+スライドの内容に関連するFont Awesomeアイコンを右下に配置し、デザインに統一感を持たせる。
+
+|スライドタイプ |アイコンのスタイル                                          |
+|--------|---------------------------------------------------|
+|タイトルスライド|`text-[600px] text-white/5` （色背景なので白・極薄）           |
+|通常スライド  |`text-[500px] text-gray-200 opacity-15` （白背景なのでグレー）|
+|まとめスライド |`text-[600px] text-white/5` （色背景なので白・極薄）           |
+
+```html
+<!-- 通常スライド用 -->
+<div class="absolute -bottom-20 -right-10 transform rotate-[-15deg] select-none z-0 pointer-events-none">
+   <i class="fas fa-[アイコン名] text-[500px] text-gray-200 opacity-15 leading-none"></i>
+</div>
+
+<!-- タイトル・まとめスライド用（色背景） -->
+<div class="absolute -bottom-32 -right-20 transform rotate-[-15deg] select-none z-0 pointer-events-none">
+   <i class="fas fa-[アイコン名] text-[600px] text-white/5 leading-none"></i>
+</div>
+```
+
+#### アイコン選定ガイド
+
+スライドの内容に合わせて適切なアイコンを選択：
+
+|カテゴリ     |おすすめアイコン                                                           |
+|---------|-------------------------------------------------------------------|
+|医療・健康    |`fa-user-md`, `fa-stethoscope`, `fa-heartbeat`, `fa-hospital`      |
+|ビジネス     |`fa-briefcase`, `fa-chart-line`, `fa-handshake`, `fa-building`     |
+|マーケティング  |`fa-bullhorn`, `fa-bullseye`, `fa-chart-pie`, `fa-magnifying-glass`|
+|技術・IT    |`fa-laptop-code`, `fa-database`, `fa-cloud`, `fa-robot`            |
+|教育       |`fa-graduation-cap`, `fa-book`, `fa-chalkboard-teacher`            |
+|法律・規制    |`fa-scale-balanced`, `fa-gavel`, `fa-file-contract`                |
+|成功・成果    |`fa-trophy`, `fa-rocket`, `fa-star`, `fa-award`                    |
+|分析・データ   |`fa-chart-bar`, `fa-chart-pie`, `fa-magnifying-glass-chart`        |
+|コミュニケーション|`fa-comments`, `fa-users`, `fa-handshake`                          |
+|時間・スケジュール|`fa-clock`, `fa-calendar`, `fa-hourglass`                          |
+
+#### ⚠️ ブランドアイコンの注意（重要）
+
+**ブランドロゴは `fas` ではなく `fab` を使用すること！**
+
+|ブランド     |正しいクラス            |間違い                   |
+|---------|------------------|----------------------|
+|YouTube  |`fab fa-youtube`  |~`fas fa-youtube`~ ❌  |
+|Google   |`fab fa-google`   |~`fas fa-google`~ ❌   |
+|Instagram|`fab fa-instagram`|~`fas fa-instagram`~ ❌|
+|Twitter/X|`fab fa-x-twitter`|~`fas fa-twitter`~ ❌  |
+|Facebook |`fab fa-facebook` |~`fas fa-facebook`~ ❌ |
+|LINE     |`fab fa-line`     |~`fas fa-line`~ ❌     |
+|TikTok   |`fab fa-tiktok`   |~`fas fa-tiktok`~ ❌   |
+
+```html
+<!-- ✅ 正しい例 -->
+<i class="fab fa-youtube text-[600px] text-white/5 leading-none"></i>
+
+<!-- ❌ 間違い（×マークになる） -->
+<i class="fas fa-youtube text-[600px] text-white/5 leading-none"></i>
+```
+
+**Font Awesomeのクラス種別：**
+
+- `fas` = Solid（通常の塗りつぶしアイコン）
+- `far` = Regular（線のみのアイコン）
+- `fab` = Brands（ブランドロゴ専用）
+
+#### ⚠️ Font Awesome 無料版のみ使用すること（重要）
+
+**Pro（有料版）専用アイコンは表示されないため、必ず無料版アイコンのみを使用すること。**
+
+|用途        |❌ Pro専用（使用禁止）                    |✅ 無料版（使用OK）            |
+|----------|---------------------------------|-----------------------|
+|下降グラフ     |`fa-chart-line-down`             |`fa-arrow-trend-down`  |
+|上昇グラフ     |`fa-chart-line-up`               |`fa-arrow-trend-up`    |
+|検索＋矢印     |`fa-magnifying-glass-arrow-right`|`fa-magnifying-glass`  |
+|ユーザー追加    |`fa-user-plus` (一部)              |`fa-user` + 別要素        |
+|ファイル系     |`fa-file-chart-*`                |`fa-file`, `fa-chart-*`|
+|細かいバリエーション|`fa-*-light`, `fa-*-thin`        |`fas fa-*`, `far fa-*` |
+
+**よく間違えるPro専用アイコン一覧（使用禁止）：**
+
+```
+❌ fa-chart-line-down      → ✅ fa-arrow-trend-down
+❌ fa-chart-line-up        → ✅ fa-arrow-trend-up  
+❌ fa-magnifying-glass-arrow-right → ✅ fa-magnifying-glass
+❌ fa-magnifying-glass-plus → ✅ fa-magnifying-glass + fa-plus
+❌ fa-magnifying-glass-minus → ✅ fa-magnifying-glass
+❌ fa-file-chart-line      → ✅ fa-file + fa-chart-line
+❌ fa-file-chart-pie       → ✅ fa-file + fa-chart-pie
+❌ fa-messages             → ✅ fa-comments
+❌ fa-messages-question    → ✅ fa-comment-dots
+❌ fa-chart-mixed          → ✅ fa-chart-bar
+❌ fa-badge-check          → ✅ fa-circle-check
+❌ fa-memo                 → ✅ fa-note-sticky
+❌ fa-browser              → ✅ fa-window-maximize
+```
+
+**無料版で使える代替アイコン例：**
+
+```html
+<!-- 下降を表現 -->
+<i class="fas fa-arrow-trend-down text-red-500"></i>
+<i class="fas fa-arrow-down text-red-500"></i>
+<i class="fas fa-caret-down text-red-500"></i>
+
+<!-- 上昇を表現 -->
+<i class="fas fa-arrow-trend-up text-green-500"></i>
+<i class="fas fa-arrow-up text-green-500"></i>
+<i class="fas fa-caret-up text-green-500"></i>
+
+<!-- グラフ系 -->
+<i class="fas fa-chart-line"></i>
+<i class="fas fa-chart-bar"></i>
+<i class="fas fa-chart-pie"></i>
+<i class="fas fa-chart-area"></i>
+
+<!-- 検索系 -->
+<i class="fas fa-magnifying-glass"></i>
+<i class="fas fa-magnifying-glass-chart"></i>
+
+<!-- 警告・注意 -->
+<i class="fas fa-triangle-exclamation"></i>
+<i class="fas fa-circle-exclamation"></i>
+
+<!-- 成功・完了 -->
+<i class="fas fa-check"></i>
+<i class="fas fa-circle-check"></i>
+
+<!-- 失敗・エラー -->
+<i class="fas fa-xmark"></i>
+<i class="fas fa-circle-xmark"></i>
+```
+
+**確認方法：** https://fontawesome.com/search で検索し、「Free」タブで表示されるアイコンのみ使用可能。
+
+-----
+
+## 【3.5 レイアウトの重要ルール（余白調整）】
+
+### ⚠️ ボックスの高さは内容に合わせる（最重要）
+
+**禁止：** 親要素いっぱいに伸ばす `flex-1` や `h-full` をカードやボックスに使用しない
+**推奨：** コンテンツの量に応じて自然な高さになるようにする
+
+#### ❌ 悪い例（縦長すぎる）
+
+```html
+<!-- flex-1 でボックスが縦に引き伸ばされる -->
+<div class="flex-1 flex gap-8">
+  <div class="flex-1 bg-gray-50 rounded-xl p-6">...</div>  <!-- ← NG: flex-1で伸びる -->
+  <div class="w-80 bg-gray-100 rounded-xl p-6 flex-1">...</div>  <!-- ← NG: flex-1で伸びる -->
+</div>
+```
+
+#### ✅ 良い例（コンテンツに合わせた高さ）
+
+```html
+<!-- items-start で上揃え、ボックスは内容の高さのみ -->
+<div class="flex gap-8 items-start">
+  <div class="flex-1 bg-gray-50 rounded-xl p-6">...</div>  <!-- ← OK: 幅だけflex-1 -->
+  <div class="w-80 bg-gray-100 rounded-xl p-6">...</div>  <!-- ← OK: 固定幅 -->
+</div>
+```
+
+### レイアウトパターン別の指定方法
+
+|レイアウト      |親要素の指定                  |子要素（カード）の指定                  |
+|-----------|------------------------|-----------------------------|
+|横並び2カラム    |`flex gap-8 items-start`|幅のみ指定（`flex-1` or `w-80`など）  |
+|横並び3カラム    |`grid grid-cols-3 gap-6`|高さ指定なし                       |
+|縦並び        |`flex flex-col gap-6`   |高さ指定なし                       |
+|グラフ横のサイドパネル|`flex gap-8 items-start`|サイドパネルは `flex flex-col gap-4`|
+
+### サイドパネルの正しい実装
+
+```html
+<!-- サイドパネルは items-start で上揃え、中身はflex-colで自然な高さ -->
+<div class="flex gap-8 items-start">
+  
+  <!-- グラフエリア（高さ固定） -->
+  <div class="flex-1 bg-gray-50 rounded-xl p-6">
+    <canvas id="chart1" style="height: 300px;"></canvas>
+  </div>
+
+  <!-- サイドパネル（コンテンツの高さに合わせる） -->
+  <div class="w-80 flex flex-col gap-4">
+    <div class="bg-[テーマカラー] text-white rounded-xl p-6 text-center">
+      <p class="text-4xl font-black">85%</p>
+      <p class="text-sm opacity-80">主要指標</p>
+    </div>
+    <div class="bg-gray-100 rounded-xl p-4">
+      <p class="text-sm text-gray-500">前年比</p>
+      <p class="text-2xl font-bold text-green-600">+23%</p>
+    </div>
+  </div>
+
+</div>
+```
+
+-----
+
+## 【4. スライドタイプ別テンプレート】
+
+### 📌 タイプA: タイトルスライド
+
+```html
+<div class="slide relative w-[1280px] min-h-[720px] flex flex-col overflow-hidden">
+  
+  <!-- 背景グラデーション（左上明るいプライマリー → 右下濃いプライマリー） -->
+  <div class="absolute inset-0 bg-gradient-to-br from-[テーマカラー] via-[テーマカラー]/90 to-[テーマカラー濃い版]"></div>
+  
+  <!-- ぼんやりとした装飾円（光の演出） -->
+  <div class="absolute -top-40 -left-40 w-[600px] h-[600px] bg-white rounded-full opacity-20 blur-3xl"></div>
+  <div class="absolute top-1/2 left-1/2 w-[400px] h-[400px] bg-white rounded-full opacity-10 blur-3xl"></div>
+  <div class="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-[テーマカラー濃い版] rounded-full opacity-40 blur-3xl"></div>
+  
+  <div class="absolute inset-0 border-8 border-white/20 z-30 pointer-events-none"></div>
+  
+  <img src="[ロゴURL]" alt="Logo" class="absolute top-10 right-12 w-64 z-40 brightness-0 invert">
+  
+  <div class="absolute bottom-4 w-full text-center text-xs text-white/50 font-medium z-40 tracking-widest">
+      © 2025 umygame Inc.
+  </div>
+
+  <div class="absolute -bottom-32 -right-20 transform rotate-[-15deg] select-none z-0 pointer-events-none">
+     <i class="fas fa-[アイコン] text-[600px] text-white/5 leading-none"></i>
+  </div>
+
+  <!-- コンテンツ: 左寄せ -->
+  <div class="content-wrapper relative z-10 p-20 flex-1 flex flex-col justify-center">
+    <div class="max-w-5xl">
+      <div class="mb-8">
+        <span class="bg-white/20 backdrop-blur-sm text-white px-6 py-2 rounded-full font-bold tracking-widest border border-white/30">
+            CATEGORY TAG
+        </span>
+      </div>
+      <h1 class="text-[72px] font-black text-white drop-shadow-lg leading-[1.1] mb-10">
+        メインタイトル<br>テキスト
+      </h1>
+      <div class="bg-white/15 backdrop-blur-sm px-8 py-5 rounded-xl inline-block border border-white/20">
+        <p class="text-[28px] font-medium text-white/90">
+          サブタイトル・キャッチコピー
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+#### テーマカラー濃い版の対応表
+
+|テーマ              |プライマリー |濃い版（グラデ終点）|
+|-----------------|-------|----------|
+|Business (青)     |#036ad1|#01407d   |
+|Video/YouTube (赤)|#FF0000|#990000   |
+|Tech (インディゴ)     |#3949ab|#1a237e   |
+|Creative (紫)     |#ab47bc|#6a1b9a   |
+|Marketing (緑)    |#43a047|#1b5e20   |
+|Finance (紺)      |#1565c0|#0d47a1   |
+
+### 📌 タイプB: コンテンツスライド（通常）
+
+```html
+<div class="slide relative w-[1280px] min-h-[720px] bg-white flex flex-col overflow-hidden">
+  
+  <!-- ボーダー・ロゴ・コピーライト・背景アイコンは共通構造 -->
+
+  <div class="content-wrapper relative z-10 p-16 flex-1 flex flex-col justify-center">
+    
+    <!-- ヘッダー -->
+    <div class="mb-8">
+      <span class="inline-block bg-[テーマカラー] text-white text-base font-bold px-4 py-1 rounded-full mb-3">
+        SECTION 01
+      </span>
+      <h1 class="text-[48px] font-bold text-gray-900 border-l-8 border-[テーマカラー] pl-6">
+        セクションタイトル
+      </h1>
+    </div>
+
+    <!-- ⚠️ items-start で上揃え、ボックスが縦に伸びない -->
+    <div class="flex gap-8 items-start">
+      
+      <!-- メインコンテンツ -->
+      <div class="flex-1 flex flex-col gap-6">
+        <!-- カード形式のポイント（高さは内容に依存） -->
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 flex items-start gap-4">
+          <div class="w-14 h-14 bg-[テーマカラー]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-check text-[テーマカラー] text-2xl"></i>
+          </div>
+          <div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">ポイントタイトル</h3>
+            <p class="text-xl text-gray-600 leading-relaxed">説明テキスト</p>
+          </div>
+        </div>
+        
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 flex items-start gap-4">
+          <div class="w-14 h-14 bg-[テーマカラー]/10 rounded-xl flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-star text-[テーマカラー] text-2xl"></i>
+          </div>
+          <div>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">ポイントタイトル2</h3>
+            <p class="text-xl text-gray-600 leading-relaxed">説明テキスト</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- サイドパネル（コンテンツの高さに合わせる） -->
+      <div class="w-80 bg-[テーマカラー]/5 rounded-xl p-6 border border-[テーマカラー]/20">
+        <h4 class="text-xl font-bold text-[テーマカラー] mb-4">
+          <i class="fas fa-info-circle mr-2"></i>補足情報
+        </h4>
+        <ul class="space-y-3">
+          <li class="flex items-center gap-3 bg-white p-3 rounded-lg">
+            <i class="fas fa-check-circle text-green-500 text-lg"></i>
+            <span class="text-lg text-gray-700 font-medium">ポイント1</span>
+          </li>
+          <li class="flex items-center gap-3 bg-white p-3 rounded-lg">
+            <i class="fas fa-check-circle text-green-500 text-lg"></i>
+            <span class="text-lg text-gray-700 font-medium">ポイント2</span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- 余白がある場合のTips（任意） -->
+    <div class="mt-8 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-4">
+      <div class="w-12 h-12 bg-amber-400 rounded-full flex items-center justify-center flex-shrink-0">
+        <i class="fas fa-lightbulb text-white text-xl"></i>
+      </div>
+      <div>
+        <p class="text-base font-bold text-amber-800">💡 ワンポイント</p>
+        <p class="text-base text-amber-700">関連する補足情報やTipsを記載</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+```
+
+### 📌 タイプC: グラフ・データスライド
+
+```html
+<div class="slide relative w-[1280px] min-h-[720px] bg-white flex flex-col overflow-hidden">
+  
+  <!-- 共通要素省略 -->
+
+  <div class="content-wrapper relative z-10 p-16 flex-1 flex flex-col justify-center">
+    
+    <div class="mb-6">
+      <span class="inline-block bg-[テーマカラー] text-white text-base font-bold px-5 py-2 rounded-full mb-3">
+        SECTION 05
+      </span>
+      <h1 class="text-[48px] font-bold text-gray-900 border-l-8 border-[テーマカラー] pl-6">
+        データタイトル
+      </h1>
+    </div>
+
+    <!-- ⚠️ items-start で上揃え、ボックスが縦に伸びない -->
+    <div class="flex gap-8 items-start">
+      
+      <!-- グラフエリア（高さ明示） -->
+      <div class="flex-1 bg-gray-50 rounded-xl p-6 border border-gray-200">
+        <h3 class="text-xl text-gray-600 font-bold mb-4">グラフタイトル</h3>
+        <div style="height: 280px;">
+          <canvas id="chart1"></canvas>
+        </div>
+        <p class="text-sm text-gray-400 mt-4 text-center">※補足テキスト</p>
+      </div>
+
+      <!-- データサマリー（コンテンツの高さに合わせる） -->
+      <div class="w-80 flex flex-col gap-4">
+        <div class="bg-[テーマカラー] text-white rounded-xl p-6 text-center">
+          <p class="text-5xl font-black">85%</p>
+          <p class="text-lg opacity-80 mt-1">主要指標</p>
+        </div>
+        <div class="bg-gray-100 rounded-xl p-4">
+          <p class="text-base text-gray-500 mb-1">前年比</p>
+          <p class="text-3xl font-bold text-green-600">+23%</p>
+        </div>
+        <div class="bg-gray-100 rounded-xl p-4">
+          <p class="text-base text-gray-500 mb-1">目標達成率</p>
+          <p class="text-3xl font-bold text-[テーマカラー]">92%</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ⚠️ グラフスクリプトは </body> 直前に配置 -->
+<script>
+new Chart(document.getElementById('chart1'), {
+  type: 'bar',
+  data: {
+    labels: ['1月', '2月', '3月', '4月', '5月'],
+    datasets: [{
+      label: 'データ名',
+      data: [65, 72, 80, 81, 85],
+      backgroundColor: '[テーマカラー]',
+      borderRadius: 8,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true } }
+  }
+});
+</script>
+```
+
+### 📌 タイプD: まとめスライド
+
+```html
+<div class="slide relative w-[1280px] min-h-[720px] flex flex-col overflow-hidden">
+  
+  <!-- 背景グラデーション -->
+  <div class="absolute inset-0 bg-gradient-to-br from-[テーマカラー] via-[テーマカラー]/90 to-[テーマカラー濃い版]"></div>
+  <div class="absolute -top-40 -left-40 w-[600px] h-[600px] bg-white rounded-full opacity-20 blur-3xl"></div>
+  <div class="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-[テーマカラー濃い版] rounded-full opacity-40 blur-3xl"></div>
+  
+  <div class="absolute inset-0 border-8 border-white/20 z-30 pointer-events-none"></div>
+  
+  <!-- ロゴ（白反転） -->
+  <img src="[ロゴURL]" alt="Logo" class="absolute top-10 right-12 w-64 z-40 brightness-0 invert">
+  
+  <div class="absolute bottom-4 w-full text-center text-sm text-white/50 font-medium z-40 tracking-widest">
+      © 2025 umygame Inc.
+  </div>
+
+  <div class="content-wrapper relative z-10 p-16 flex-1 flex flex-col justify-center">
+    
+    <h1 class="text-[56px] font-black text-white mb-12 text-center drop-shadow-md">
+      まとめ
+    </h1>
+
+    <div class="grid grid-cols-3 gap-6 max-w-5xl mx-auto">
+      <!-- まとめポイント -->
+      <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center border border-white/20">
+        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-lightbulb text-white text-2xl"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-white mb-3">ポイント1</h3>
+        <p class="text-lg text-white/80 leading-relaxed">説明テキスト</p>
+      </div>
+      <!-- 同様に2つ追加 -->
+    </div>
+
+  </div>
+</div>
+```
+
+-----
+
+## 【5. タイポグラフィ設定】
+
+### 📐 フォントサイズ一覧（スマホ閲覧対応・拡大版）
+
+|要素            |サイズ |Tailwindクラス  |ウェイト       |備考                            |
+|--------------|----|-------------|-----------|------------------------------|
+|**タイトルスライド**                                                            |||||
+|メインタイトル       |72px|`text-[72px]`|font-black |drop-shadow-lg, leading-[1.1] |
+|サブタイトル        |32px|`text-[32px]`|font-medium|text-white/90                 |
+|カテゴリタグ        |16px|`text-base`  |font-bold  |tracking-widest               |
+|**通常スライド**                                                              |||||
+|セクション番号       |16px|`text-base`  |font-bold  |bg-[テーマカラー]バッジ                |
+|スライドタイトル      |48px|`text-[48px]`|font-bold  |border-l-8付き                  |
+|スライドタイトル（長い場合）|40px|`text-[40px]`|font-bold  |border-l-8付き                  |
+|カード見出し（h3）    |24px|`text-2xl`   |font-bold  |text-gray-900                 |
+|本文            |20px|`text-xl`    |font-normal|text-gray-600, leading-relaxed|
+|補足・注釈         |16px|`text-base`  |font-normal|text-gray-500                 |
+|Tipsテキスト      |16px|`text-base`  |font-normal|text-amber-700                |
+|リスト項目         |18px|`text-lg`    |font-medium|text-gray-700                 |
+|**まとめスライド**                                                             |||||
+|まとめタイトル       |56px|`text-[56px]`|font-black |text-white                    |
+|カード見出し        |24px|`text-2xl`   |font-bold  |text-white                    |
+|カード本文         |18px|`text-lg`    |font-normal|text-white/80                 |
+|**共通**                                                                  |||||
+|コピーライト        |14px|`text-sm`    |font-medium|tracking-widest               |
+|グラフタイトル       |20px|`text-xl`    |font-bold  |text-gray-600                 |
+|グラフ補足         |14px|`text-sm`    |font-normal|text-gray-400                 |
+
+### ⚠️ フォントサイズの注意点
+
+- **本文は最低20px（`text-xl`）** を使用すること
+- 14px以下は補足・注釈・コピーライトのみ許可
+- カード内のテキストは18px以上を推奨
+
+-----
+
+## 【6. 余白対策（重要）】
+
+### 上下の余白が多い場合の対応
+
+1. **Tips/豆知識ボックスを追加**
+
+```html
+<div class="mt-auto bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-4">
+  <div class="w-10 h-10 bg-amber-400 rounded-full flex items-center justify-center flex-shrink-0">
+    <i class="fas fa-lightbulb text-white"></i>
+  </div>
+  <div>
+    <p class="text-sm font-bold text-amber-800">💡 ワンポイント</p>
+    <p class="text-sm text-amber-700">関連する補足情報やTipsを記載</p>
+  </div>
+</div>
+```
+
+1. **関連データの追加表示**
+
+```html
+<div class="mt-auto grid grid-cols-4 gap-4">
+  <div class="bg-gray-100 rounded-lg p-4 text-center">
+    <p class="text-2xl font-bold text-[テーマカラー]">数値</p>
+    <p class="text-xs text-gray-500">ラベル</p>
+  </div>
+  <!-- 残り3つ -->
+</div>
+```
+
+1. **引用・参照ボックス**
+
+```html
+<div class="mt-auto border-l-4 border-[テーマカラー] bg-gray-50 pl-6 py-4">
+  <p class="text-gray-600 italic">"引用テキストや重要なメッセージ"</p>
+  <p class="text-sm text-gray-400 mt-2">— 出典元</p>
+</div>
+```
+
+-----
+
+## 【7. グラフ実装ガイド】
+
+### 🔄 グラフの2つの実装方法
+
+|方法          |メリット       |デメリット|使用場面           |
+|------------|-----------|-----|---------------|
+|**Chart.js**|高機能、アニメーション|JS必須 |インタラクティブ、複雑なグラフ|
+|**CSS Only**|JS不要、軽量    |静的のみ |シンプルなグラフ、PDF出力 |
+
+-----
+
+### 【方法1】CSSのみのグラフ（JS不要・推奨）
+
+#### 📊 棒グラフ（横向き）
+
+```html
+<div class="space-y-4">
+  <div class="flex items-center gap-4">
+    <span class="w-24 text-sm text-gray-600 text-right">カテゴリA</span>
+    <div class="flex-1 bg-gray-200 rounded-full h-8 overflow-hidden">
+      <div class="h-full bg-[テーマカラー] rounded-full flex items-center justify-end pr-3" style="width: 85%;">
+        <span class="text-white text-sm font-bold">85%</span>
+      </div>
+    </div>
+  </div>
+  <div class="flex items-center gap-4">
+    <span class="w-24 text-sm text-gray-600 text-right">カテゴリB</span>
+    <div class="flex-1 bg-gray-200 rounded-full h-8 overflow-hidden">
+      <div class="h-full bg-[テーマカラー]/70 rounded-full flex items-center justify-end pr-3" style="width: 62%;">
+        <span class="text-white text-sm font-bold">62%</span>
+      </div>
+    </div>
+  </div>
+  <div class="flex items-center gap-4">
+    <span class="w-24 text-sm text-gray-600 text-right">カテゴリC</span>
+    <div class="flex-1 bg-gray-200 rounded-full h-8 overflow-hidden">
+      <div class="h-full bg-[テーマカラー]/50 rounded-full flex items-center justify-end pr-3" style="width: 45%;">
+        <span class="text-white text-sm font-bold">45%</span>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+#### 📊 棒グラフ（縦向き）
+
+```html
+<div class="flex items-end justify-center gap-6 h-64">
+  <div class="flex flex-col items-center gap-2">
+    <span class="text-sm font-bold text-[テーマカラー]">85%</span>
+    <div class="w-16 bg-[テーマカラー] rounded-t-lg" style="height: 85%;"></div>
+    <span class="text-xs text-gray-600">1月</span>
+  </div>
+  <div class="flex flex-col items-center gap-2">
+    <span class="text-sm font-bold text-[テーマカラー]">72%</span>
+    <div class="w-16 bg-[テーマカラー]/80 rounded-t-lg" style="height: 72%;"></div>
+    <span class="text-xs text-gray-600">2月</span>
+  </div>
+  <div class="flex flex-col items-center gap-2">
+    <span class="text-sm font-bold text-[テーマカラー]">90%</span>
+    <div class="w-16 bg-[テーマカラー] rounded-t-lg" style="height: 90%;"></div>
+    <span class="text-xs text-gray-600">3月</span>
+  </div>
+  <div class="flex flex-col items-center gap-2">
+    <span class="text-sm font-bold text-[テーマカラー]">65%</span>
+    <div class="w-16 bg-[テーマカラー]/70 rounded-t-lg" style="height: 65%;"></div>
+    <span class="text-xs text-gray-600">4月</span>
+  </div>
+</div>
+```
+
+#### 🥧 円グラフ（ドーナツ）
+
+```html
+<div class="relative w-48 h-48 mx-auto">
+  <!-- conic-gradient で円グラフを描画 -->
+  <div class="w-full h-full rounded-full" 
+       style="background: conic-gradient(
+         [テーマカラー] 0deg 180deg,
+         [テーマカラー]99 180deg 270deg,
+         #e5e7eb 270deg 360deg
+       );">
+  </div>
+  <!-- 中央の穴（ドーナツ用） -->
+  <div class="absolute inset-8 bg-white rounded-full flex items-center justify-center">
+    <div class="text-center">
+      <p class="text-3xl font-black text-[テーマカラー]">50%</p>
+      <p class="text-xs text-gray-500">メイン</p>
+    </div>
+  </div>
+</div>
+<!-- 凡例 -->
+<div class="flex justify-center gap-6 mt-4">
+  <div class="flex items-center gap-2">
+    <div class="w-4 h-4 rounded bg-[テーマカラー]"></div>
+    <span class="text-sm">カテゴリA (50%)</span>
+  </div>
+  <div class="flex items-center gap-2">
+    <div class="w-4 h-4 rounded bg-[テーマカラー]/60"></div>
+    <span class="text-sm">カテゴリB (25%)</span>
+  </div>
+  <div class="flex items-center gap-2">
+    <div class="w-4 h-4 rounded bg-gray-300"></div>
+    <span class="text-sm">その他 (25%)</span>
+  </div>
+</div>
+```
+
+#### 📈 プログレスバー（進捗表示）
+
+```html
+<div class="space-y-6">
+  <div>
+    <div class="flex justify-between mb-2">
+      <span class="font-bold text-gray-800">目標達成率</span>
+      <span class="font-bold text-[テーマカラー]">78%</span>
+    </div>
+    <div class="h-4 bg-gray-200 rounded-full overflow-hidden">
+      <div class="h-full bg-gradient-to-r from-[テーマカラー] to-[テーマカラー]/70 rounded-full" style="width: 78%;"></div>
+    </div>
+  </div>
+  <div>
+    <div class="flex justify-between mb-2">
+      <span class="font-bold text-gray-800">完了タスク</span>
+      <span class="font-bold text-green-600">92%</span>
+    </div>
+    <div class="h-4 bg-gray-200 rounded-full overflow-hidden">
+      <div class="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full" style="width: 92%;"></div>
+    </div>
+  </div>
+</div>
+```
+
+#### 🔢 比較カード（数値強調）
+
+```html
+<div class="grid grid-cols-2 gap-6">
+  <div class="bg-gray-100 rounded-xl p-6 text-center">
+    <p class="text-sm text-gray-500 mb-2">改善前</p>
+    <p class="text-5xl font-black text-gray-400">2.5%</p>
+  </div>
+  <div class="bg-[テーマカラー]/10 rounded-xl p-6 text-center border-2 border-[テーマカラー]">
+    <p class="text-sm text-[テーマカラー] mb-2">改善後</p>
+    <p class="text-5xl font-black text-[テーマカラー]">8.2%</p>
+    <p class="text-sm text-green-600 font-bold mt-2">▲ +228%</p>
+  </div>
+</div>
+```
+
+-----
+
+### 【方法2】Chart.js（高機能グラフ）
+
+#### ⚠️ Chart.js 実装の必須ルール
+
+1. **ライブラリ読み込み**: `<head>`内で`<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>`を読み込む
+1. **canvas要素**: 各グラフに一意の`id`を付けた`<canvas>`を配置
+1. **スクリプト位置**: グラフ描画スクリプトは **`</body>`の直前** に配置（DOM読み込み後に実行）
+1. **高さ指定**: canvasの親要素またはstyle属性で高さを明示的に指定
+
+### 正しい実装例
+
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <!-- ...他のhead要素... -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    
+    <!-- スライド内のグラフエリア -->
+    <div class="flex-1 bg-gray-50 rounded-xl p-6">
+        <h3 class="text-gray-600 font-bold mb-4">グラフタイトル</h3>
+        <!-- 高さを明示的に指定 -->
+        <div style="height: 300px;">
+            <canvas id="myChart"></canvas>
+        </div>
+    </div>
+
+    <!-- 全てのスライドHTMLの後、</body>の直前にスクリプトを配置 -->
+    <script>
+    // グラフ1: 棒グラフ
+    new Chart(document.getElementById('myChart'), {
+        type: 'bar',
+        data: {
+            labels: ['A', 'B', 'C', 'D'],
+            datasets: [{
+                label: 'データ名',
+                data: [12, 19, 8, 15],
+                backgroundColor: '[テーマカラー]',
+                borderRadius: 8,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,  // ← 親要素の高さに合わせる
+            plugins: { 
+                legend: { display: false } 
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+    </script>
+</body>
+</html>
+```
+
+### グラフタイプ別サンプル
+
+#### 棒グラフ（比較向け）
+
+```javascript
+new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+        labels: ['改善前', '改善後'],
+        datasets: [{
+            data: [2.5, 8.2],
+            backgroundColor: ['#9ca3af', '[テーマカラー]'],
+            borderRadius: 8,
+            barThickness: 60,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { 
+                beginAtZero: true,
+                title: { display: true, text: '単位 (%)' }
+            },
+            x: { grid: { display: false } }
+        }
+    }
+});
+```
+
+#### 折れ線グラフ（推移向け）
+
+```javascript
+new Chart(document.getElementById('lineChart'), {
+    type: 'line',
+    data: {
+        labels: ['1月', '2月', '3月', '4月', '5月', '6月'],
+        datasets: [{
+            label: '売上推移',
+            data: [30, 45, 42, 55, 60, 72],
+            borderColor: '[テーマカラー]',
+            backgroundColor: '[テーマカラー]20',  // 20は透明度
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: '[テーマカラー]',
+            pointBorderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+            y: { 
+                beginAtZero: true,
+                max: 100,
+                title: { display: true, text: '数値 (%)' }
+            }
+        }
+    }
+});
+```
+
+#### 円グラフ / ドーナツグラフ（構成比向け）
+
+```javascript
+new Chart(document.getElementById('doughnutChart'), {
+    type: 'doughnut',  // 'pie' でも可
+    data: {
+        labels: ['カテゴリA', 'カテゴリB', 'その他'],
+        datasets: [{
+            data: [45, 35, 20],
+            backgroundColor: [
+                '[テーマカラー]',
+                '[テーマカラー]80',  // 80は透明度
+                '#e5e7eb'
+            ],
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',  // ドーナツの穴のサイズ（pieの場合は不要）
+        plugins: {
+            legend: { position: 'right' }
+        }
+    }
+});
+```
+
+### 複数グラフがある場合
+
+各グラフに一意のIDを付け、スクリプト内でそれぞれ初期化：
+
+```html
+<canvas id="chart1"></canvas>
+<canvas id="chart2"></canvas>
+
+<script>
+// グラフ1
+new Chart(document.getElementById('chart1'), { ... });
+
+// グラフ2
+new Chart(document.getElementById('chart2'), { ... });
+</script>
+```
+
+### ❌ よくあるエラーと対処法
+
+|エラー                 |原因                        |対処法                            |
+|--------------------|--------------------------|-------------------------------|
+|グラフが表示されない          |スクリプトがcanvasより先に実行        |`</body>`直前にスクリプトを移動           |
+|グラフが小さすぎる           |高さが指定されていない               |親要素に`style="height: 300px;"`を追加|
+|グラフがはみ出す            |`maintainAspectRatio`がtrue|`maintainAspectRatio: false`に設定|
+|Chart is not defined|CDN読み込み失敗                 |`<head>`内のscriptタグを確認          |
+
+-----
+
+## 【8. チェックリスト】
+
+### デザイン面
+
+- [ ] 4色以内の配色になっているか
+- [ ] プライマリーカラーが一貫しているか
+- [ ] タイトルスライドは左上→右下のグラデーション（プライマリー→濃いプライマリー）になっているか
+- [ ] タイトルスライドのタイトルは左寄せ、72px以上になっているか
+
+### レイアウト面（⚠️重要）
+
+- [ ] コンテンツが垂直方向に中央寄せ（`justify-center`）になっているか
+- [ ] カード/ボックスに不要な`flex-1`や`h-full`を使用していないか
+- [ ] 横並びレイアウトの親要素に`items-start`を指定しているか
+- [ ] ボックスの高さがコンテンツに合わせて自然になっているか
+- [ ] 下部に余白がある場合、Tipsボックスなどで埋めているか
+
+### 必須要素（⚠️絶対確認）
+
+- [ ] **全スライドにコピーライト（© 2025 umygame Inc.）が配置されているか**
+- [ ] **全スライドに背景の巨大アイコンが配置されているか**
+- [ ] 全スライドにロゴが配置されているか
+- [ ] 全スライドにボーダー（border-8）が配置されているか
+- [ ] 背景アイコンがスライド内容に関連しているか
+
+### グラフ面
+
+- [ ] JS不要の場合、CSSのみのグラフを使用しているか
+- [ ] Chart.js使用時、`<head>`内でCDNを読み込んでいるか
+- [ ] Chart.js使用時、スクリプトを`</body>`直前に配置しているか
+- [ ] Chart.js使用時、canvasの親要素に高さを指定しているか
+- [ ] Chart.js使用時、`maintainAspectRatio: false`を設定しているか
+- [ ] **全ての`<canvas id="xxx">`に対応する`new Chart()`が`<script>`内にあるか**
+
+### アイコン面（⚠️重要）
+
+- [ ] **Pro専用アイコンを使用していないか**（fa-chart-line-down, fa-magnifying-glass-arrow-right等）
+- [ ] ブランドアイコンは`fab`を使用しているか（YouTube, Google, Instagram等）
+- [ ] 全てのアイコンが正しく表示されるか確認したか
+
+### コンテンツ面
+
+- [ ] データがある場合、グラフ（CSS or Chart.js）を使用しているか
+- [ ] 要点が2〜4個にまとめられているか
+- [ ] 5秒で理解できる構成か
+- [ ] アイコンが内容に合っているか
+
+### 技術面
+
+- [ ] サイズが w-[1280px] min-h-[720px] になっているか
+- [ ] ボーダーが最前面（z-30）になっているか
+
+-----
+
+## 【9. 出力形式（重要）】
+
+### ⚠️ 全スライドを1つのHTMLファイルにまとめて出力すること
+
+**禁止：** スライドごとに分割してコードを出力しない
+**必須：** 1つの完全なHTMLファイルとして全スライドを出力
+
+### 正しい出力構造
+
+```html
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プレゼンテーションタイトル</title>
+    
+    <!-- ライブラリ読み込み -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            background-color: #f3f4f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 40px;
+            padding: 40px;
+            margin: 0;
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+        .slide {
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== スライド1: タイトル ==================== -->
+    <div class="slide relative w-[1280px] min-h-[720px] ...">
+      ...
+    </div>
+
+    <!-- ==================== スライド2: セクション1 ==================== -->
+    <div class="slide relative w-[1280px] min-h-[720px] ...">
+      ...
+    </div>
+
+    <!-- ==================== スライド3: セクション2 ==================== -->
+    <div class="slide relative w-[1280px] min-h-[720px] ...">
+      ...
+    </div>
+
+    <!-- ... 全スライドを連続して配置 ... -->
+
+    <!-- ==================== 最終スライド: まとめ ==================== -->
+    <div class="slide relative w-[1280px] min-h-[720px] ...">
+      ...
+    </div>
+
+    <!-- ==================== グラフ描画スクリプト ==================== -->
+    <script>
+    // 全てのグラフ初期化をここにまとめる
+    
+    // グラフ1
+    new Chart(document.getElementById('chart1'), { ... });
+    
+    // グラフ2
+    new Chart(document.getElementById('chart2'), { ... });
+    
+    // 必要な分だけ続ける
+    </script>
+
+</body>
+</html>
+```
+
+### 出力時の注意事項
+
+1. **コードブロックは1つだけ**: 複数のコードブロックに分割しない
+1. **コメントで区切る**: 各スライドの開始位置を `<!-- スライドN: タイトル -->` で明示
+1. **スクリプトは最後に1箇所**: 全グラフの初期化コードを `</body>` 直前にまとめる
+1. **途中で説明を挟まない**: HTMLコードの出力が完了してから説明を追加
+
+-----
+
+## 【10. 実行対象】
+
+**記事タイトル：** {{ここにタイトルを記載}}
+
+**テーマカラー：** {{自動判定または指定}}
+
+**セクション構成：**
+
+- セクション1：{{見出し}} → 要点1, 要点2, …
+- セクション2：{{見出し}} → 要点1, 要点2, …
+- …
+
+-----
+
+以上のルールに従い、プロフェッショナルで統一感のあるスライドを生成してください。
