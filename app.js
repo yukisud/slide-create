@@ -91,18 +91,14 @@ function sanitizeHtml(doc) {
     'www.gstatic.com/charts'
   ];
 
-  // 危険なパターン（基本的なXSS対策）
-  const DANGEROUS_PATTERNS = [
-    /document\.cookie/i,
-    /localStorage/i,
-    /sessionStorage/i,
-    /\.innerHTML\s*=/i,
+  // 非常に危険なパターンのみをブロック（XSS対策の最小限）
+  // Chart.jsなどの正当なコードは許可する
+  const VERY_DANGEROUS_PATTERNS = [
+    /document\.cookie\s*=/i,  // cookieの書き込みのみブロック（読み取りは許可）
     /eval\s*\(/i,
     /Function\s*\(/i,
-    /setTimeout\s*\(\s*['"`]/i,
-    /setInterval\s*\(\s*['"`]/i,
-    /window\.location/i,
-    /document\.write/i
+    /<script/i,  // scriptタグの動的生成
+    /javascript:/i  // javascript:プロトコル
   ];
 
   const allScripts = doc.querySelectorAll('script');
@@ -134,17 +130,17 @@ function sanitizeHtml(doc) {
       return;
     }
 
-    // インラインスクリプトの場合、危険なパターンをチェック
+    // インラインスクリプトの場合、極めて危険なパターンのみをチェック
     const scriptContent = el.textContent || '';
-    const isDangerous = DANGEROUS_PATTERNS.some(pattern => pattern.test(scriptContent));
+    const isVeryDangerous = VERY_DANGEROUS_PATTERNS.some(pattern => pattern.test(scriptContent));
 
-    if (isDangerous) {
-      console.warn('[DEBUG] sanitizeHtml: Dangerous script pattern detected and removed:', scriptContent.substring(0, 100));
+    if (isVeryDangerous) {
+      console.warn('[DEBUG] sanitizeHtml: Very dangerous script pattern detected and removed:', scriptContent.substring(0, 100));
       el.remove();
     } else {
-      console.log('[DEBUG] sanitizeHtml: Keeping safe inline script, length:', scriptContent.length);
+      console.log('[DEBUG] sanitizeHtml: Keeping inline script, length:', scriptContent.length);
     }
-    // 安全と判断されたインラインスクリプトは残す
+    // Chart.js等の正当なインラインスクリプトは残す
   });
 
   return doc;
