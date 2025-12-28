@@ -337,27 +337,6 @@ function renderSlidesContent(slides, bodyScripts = []) {
           loadedCount++;
           console.log('[DEBUG] External script loaded:', data.src, `(${loadedCount}/${totalExternal})`);
 
-          // Chart.jsが読み込まれたら、バーグラフの幅を調整するためにグローバル設定を上書き
-          if (data.src.includes('chart') && typeof Chart !== 'undefined') {
-            console.log('[DEBUG] Configuring Chart.js defaults for thicker bars');
-            try {
-              // Chart.js v3以降の正しいデフォルト設定方法
-              // barPercentage: バーの太さ (0.95 = かなり太い)
-              // categoryPercentage: カテゴリ幅 (0.95 = 余白が少ない)
-              if (!Chart.defaults.datasets) {
-                Chart.defaults.datasets = {};
-              }
-              if (!Chart.defaults.datasets.bar) {
-                Chart.defaults.datasets.bar = {};
-              }
-              Chart.defaults.datasets.bar.barPercentage = 0.95;
-              Chart.defaults.datasets.bar.categoryPercentage = 0.95;
-              console.log('[DEBUG] Chart.js defaults configured successfully');
-            } catch (e) {
-              console.error('[DEBUG] Failed to configure Chart.js defaults:', e);
-            }
-          }
-
           if (loadedCount === totalExternal) {
             // すべての外部スクリプトがロード完了
             console.log('[DEBUG] All external scripts loaded, executing inline scripts');
