@@ -520,73 +520,14 @@ async function renderSlideCanvas(slide) {
   // 4. レイアウト計算のために少し待機
   await new Promise(resolve => setTimeout(resolve, 100));
 
-  // 4.5. Chart.jsのグラフがすべて描画完了するまで待機
-  await new Promise((resolve) => {
-    const canvases = clone.querySelectorAll('canvas');
+  // 4.5. Chart.jsのグラフがある場合は追加で待機
+  const canvases = clone.querySelectorAll('canvas');
+  const hasCharts = typeof Chart !== 'undefined' && canvases.length > 0;
 
-    // canvasがない場合はすぐに解決
-    if (canvases.length === 0) {
-      resolve();
-      return;
-    }
-
-    // Chart.jsがロードされていない場合もすぐに解決
-    if (typeof Chart === 'undefined') {
-      resolve();
-      return;
-    }
-
-    let attempts = 0;
-    const maxAttempts = 50; // 最大5秒待機 (50 * 100ms)
-
-    const checkCharts = () => {
-      attempts++;
-
-      // タイムアウトチェック
-      if (attempts >= maxAttempts) {
-        console.warn('Chart.js rendering timeout - proceeding anyway');
-        resolve();
-        return;
-      }
-
-      // すべてのcanvasが描画されているかチェック
-      let allRendered = true;
-      for (let canvas of canvases) {
-        const ctx = canvas.getContext('2d');
-        if (!ctx) continue;
-
-        try {
-          // canvas全体ではなく、最初の数ピクセルをチェックして高速化
-          const sampleSize = Math.min(10, canvas.width);
-          const imageData = ctx.getImageData(0, 0, sampleSize, 1);
-
-          // アルファチャンネルをチェックして描画済みか確認
-          const hasContent = imageData.data.some((value, index) => {
-            return index % 4 === 3 && value > 0;
-          });
-
-          if (!hasContent) {
-            allRendered = false;
-            break;
-          }
-        } catch (e) {
-          allRendered = false;
-          break;
-        }
-      }
-
-      if (allRendered) {
-        // すべてのグラフが描画完了
-        resolve();
-      } else {
-        // まだ描画中 - 再チェック
-        setTimeout(checkCharts, 100);
-      }
-    };
-
-    // 初回チェックを少し遅延させてChart.jsの初期化を待つ
-    setTimeout(checkCharts, 300);
-  });
+  if (hasCharts) {
+    // Chart.jsのレンダリングのために追加で待機
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
 
   // 5. スライド直下のflex修正のみ（ネストされた要素は触らない）
   const slideEl = clone.querySelector('.slide');
