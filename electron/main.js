@@ -196,20 +196,76 @@ ipcMain.handle('export-pdf', async (event, slidesHtml, slideCount) => {
       await captureWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(slideHtml)}`);
 
       // Wait for fonts to load
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-      // Check if page has Chart.js charts and wait for rendering
-      const hasCharts = await captureWindow.webContents.executeJavaScript(`
+      // Extract and execute scripts from the injected HTML
+      await captureWindow.webContents.executeJavaScript(`
         (function() {
-          const hasChart = typeof Chart !== 'undefined';
-          const hasCanvas = document.querySelectorAll('canvas').length > 0;
-          return hasChart && hasCanvas;
+          const container = document.getElementById('slide-container');
+
+          // Extract all script elements
+          const scripts = Array.from(container.querySelectorAll('script'));
+
+          // Remove them from DOM first
+          scripts.forEach(script => script.remove());
+
+          // Execute external scripts first, then inline scripts
+          const externalScripts = scripts.filter(s => s.src);
+          const inlineScripts = scripts.filter(s => !s.src);
+
+          return new Promise((resolve) => {
+            if (externalScripts.length === 0) {
+              // No external scripts, execute inline immediately
+              inlineScripts.forEach(script => {
+                const newScript = document.createElement('script');
+                newScript.textContent = script.textContent;
+                document.body.appendChild(newScript);
+              });
+              resolve();
+            } else {
+              // Load external scripts first
+              let loaded = 0;
+              externalScripts.forEach(script => {
+                const newScript = document.createElement('script');
+                newScript.src = script.src;
+                newScript.onload = () => {
+                  loaded++;
+                  if (loaded === externalScripts.length) {
+                    // All external scripts loaded, execute inline
+                    inlineScripts.forEach(script => {
+                      const inlineScript = document.createElement('script');
+                      inlineScript.textContent = script.textContent;
+                      document.body.appendChild(inlineScript);
+                    });
+                    resolve();
+                  }
+                };
+                newScript.onerror = () => {
+                  loaded++;
+                  if (loaded === externalScripts.length) {
+                    inlineScripts.forEach(script => {
+                      const inlineScript = document.createElement('script');
+                      inlineScript.textContent = script.textContent;
+                      document.body.appendChild(inlineScript);
+                    });
+                    resolve();
+                  }
+                };
+                document.body.appendChild(newScript);
+              });
+            }
+          });
         })();
       `);
 
-      // If charts exist, wait additional time for rendering
+      // Wait for Chart.js to render (if present)
+      const hasCharts = await captureWindow.webContents.executeJavaScript(`
+        typeof Chart !== 'undefined' && document.querySelectorAll('canvas').length > 0
+      `);
+
       if (hasCharts) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Give Chart.js time to render
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
       const image = await captureWindow.webContents.capturePage({
