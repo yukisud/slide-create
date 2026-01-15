@@ -37,7 +37,7 @@ app.on('activate', () => {
 });
 
 // スライドをキャプチャしてPNG保存
-ipcMain.handle('capture-slides', async (event, slidesHtml, slideCount) => {
+ipcMain.handle('capture-slides', async (event, fullHtml, slideCount) => {
   try {
     // 保存先を選択
     const result = await dialog.showOpenDialog(mainWindow, {
@@ -66,40 +66,29 @@ ipcMain.handle('capture-slides', async (event, slidesHtml, slideCount) => {
       }
     });
 
+    // Load the full HTML once
+    await captureWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(fullHtml)}`);
+
+    // Wait for all resources to load
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Hide all slides except the one we're capturing
     for (let i = 0; i < slideCount; i++) {
-      // 各スライドのHTMLをレンダリング
-      const slideHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <script src="https://cdn.tailwindcss.com"></script>
-          <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-          <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-              font-family: 'Noto Sans JP', sans-serif;
-              width: 1280px;
-              height: 720px;
-              overflow: hidden;
-              background: white;
+      await captureWindow.webContents.executeJavaScript(`
+        (function() {
+          const slides = document.querySelectorAll('.slide');
+          slides.forEach((slide, index) => {
+            if (index === ${i}) {
+              slide.style.display = '';
+            } else {
+              slide.style.display = 'none';
             }
-          </style>
-        </head>
-        <body>
-          <div id="slide-container"></div>
-          <script>
-            document.getElementById('slide-container').innerHTML = decodeURIComponent("${encodeURIComponent(slidesHtml[i])}");
-          </script>
-        </body>
-        </html>
-      `;
+          });
+        })();
+      `);
 
-      await captureWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(slideHtml)}`);
-
-      // フォント読み込み待機
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Wait for Chart.js to render
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // スクリーンショット取得
       const image = await captureWindow.webContents.capturePage({
@@ -135,7 +124,7 @@ ipcMain.handle('capture-slides', async (event, slidesHtml, slideCount) => {
 });
 
 // PDF出力
-ipcMain.handle('export-pdf', async (event, slidesHtml, slideCount) => {
+ipcMain.handle('export-pdf', async (event, fullHtml, slideCount) => {
   try {
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openDirectory', 'createDirectory'],
@@ -163,110 +152,29 @@ ipcMain.handle('export-pdf', async (event, slidesHtml, slideCount) => {
       }
     });
 
+    // Load the full HTML once
+    await captureWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(fullHtml)}`);
+
+    // Wait for all resources to load
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Hide all slides except the one we're capturing
     for (let i = 0; i < slideCount; i++) {
-      const slideHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <script src="https://cdn.tailwindcss.com"></script>
-          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-          <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-          <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-              font-family: 'Noto Sans JP', sans-serif;
-              width: 1280px;
-              height: 720px;
-              overflow: hidden;
-              background: white;
-            }
-          </style>
-        </head>
-        <body>
-          <div id="slide-container"></div>
-          <script>
-            document.getElementById('slide-container').innerHTML = decodeURIComponent("${encodeURIComponent(slidesHtml[i])}");
-          </script>
-        </body>
-        </html>
-      `;
-
-      await captureWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(slideHtml)}`);
-
-      // Wait for fonts to load
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // Extract and execute scripts from the injected HTML
       await captureWindow.webContents.executeJavaScript(`
         (function() {
-          const container = document.getElementById('slide-container');
-
-          // Extract all script elements
-          const scripts = Array.from(container.querySelectorAll('script'));
-
-          // Remove them from DOM first
-          scripts.forEach(script => script.remove());
-
-          // Execute external scripts first, then inline scripts
-          const externalScripts = scripts.filter(s => s.src);
-          const inlineScripts = scripts.filter(s => !s.src);
-
-          return new Promise((resolve) => {
-            if (externalScripts.length === 0) {
-              // No external scripts, execute inline immediately
-              inlineScripts.forEach(script => {
-                const newScript = document.createElement('script');
-                newScript.textContent = script.textContent;
-                document.body.appendChild(newScript);
-              });
-              resolve();
+          const slides = document.querySelectorAll('.slide');
+          slides.forEach((slide, index) => {
+            if (index === ${i}) {
+              slide.style.display = '';
             } else {
-              // Load external scripts first
-              let loaded = 0;
-              externalScripts.forEach(script => {
-                const newScript = document.createElement('script');
-                newScript.src = script.src;
-                newScript.onload = () => {
-                  loaded++;
-                  if (loaded === externalScripts.length) {
-                    // All external scripts loaded, execute inline
-                    inlineScripts.forEach(script => {
-                      const inlineScript = document.createElement('script');
-                      inlineScript.textContent = script.textContent;
-                      document.body.appendChild(inlineScript);
-                    });
-                    resolve();
-                  }
-                };
-                newScript.onerror = () => {
-                  loaded++;
-                  if (loaded === externalScripts.length) {
-                    inlineScripts.forEach(script => {
-                      const inlineScript = document.createElement('script');
-                      inlineScript.textContent = script.textContent;
-                      document.body.appendChild(inlineScript);
-                    });
-                    resolve();
-                  }
-                };
-                document.body.appendChild(newScript);
-              });
+              slide.style.display = 'none';
             }
           });
         })();
       `);
 
-      // Wait for Chart.js to render (if present)
-      const hasCharts = await captureWindow.webContents.executeJavaScript(`
-        typeof Chart !== 'undefined' && document.querySelectorAll('canvas').length > 0
-      `);
-
-      if (hasCharts) {
-        // Give Chart.js time to render
-        await new Promise(resolve => setTimeout(resolve, 1500));
-      }
+      // Wait for Chart.js to render
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const image = await captureWindow.webContents.capturePage({
         x: 0,
