@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "HTML Slide Exporter with accurate rendering",
   "main": "main.js",
+  "author": "umygame Inc.",
   "scripts": {
     "start": "electron . --no-sandbox",
     "build": "electron-builder",
@@ -50,6 +51,7 @@
     "mac": {
       "target": "dmg",
       "hardenedRuntime": true,
+      "identity": null,
       "entitlements": "entitlements.mac.plist",
       "entitlementsInherit": "entitlements.mac.inherit.plist"
     },
