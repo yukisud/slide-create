@@ -259,9 +259,6 @@ function renderSlidesContent(slides, bodyScripts = []) {
       });
     }
     applyEditMode();
-
-    // スライドの高さチェック（Chart.jsレンダリング後に実行）
-    setTimeout(checkSlideHeights, 2000);
   };
 
   slides.forEach((slide, idx) => {
@@ -360,54 +357,6 @@ function applyEditMode() {
   if (!editable) {
     selectionToolbar.classList.remove('show');
   }
-}
-
-function checkSlideHeights() {
-  const slides = preview.querySelectorAll('.slide-editor');
-  const oversizedSlides = [];
-
-  // 一時的にbodyのスタイルをPDFエクスポート時の状態に変更
-  const originalBodyStyles = {
-    padding: document.body.style.padding,
-    margin: document.body.style.margin,
-    gap: document.body.style.gap,
-    display: document.body.style.display
-  };
-
-  document.body.style.padding = '0';
-  document.body.style.margin = '0';
-  document.body.style.gap = '0';
-  document.body.style.display = 'block';
-
-  // レイアウトを再計算させるために少し待つ
-  requestAnimationFrame(() => {
-    slides.forEach((slide, index) => {
-      const slideContent = slide.querySelector('.slide');
-      if (slideContent) {
-        const height = slideContent.scrollHeight;
-        if (height > 720) {
-          oversizedSlides.push({
-            index: index + 1,
-            height: height
-          });
-        }
-      }
-    });
-
-    // スタイルを元に戻す
-    document.body.style.padding = originalBodyStyles.padding;
-    document.body.style.margin = originalBodyStyles.margin;
-    document.body.style.gap = originalBodyStyles.gap;
-    document.body.style.display = originalBodyStyles.display;
-
-    if (oversizedSlides.length > 0) {
-      const message = oversizedSlides.map(s =>
-        `スライド${s.index}: ${s.height}px (${s.height - 720}px超過)`
-      ).join('\n');
-
-      showToast(`⚠️ 以下のスライドが720pxを超えています。PDFエクスポート時に下部が切れる可能性があります:\n\n${message}\n\nコンテンツを減らすか、フォントサイズを調整してください。`);
-    }
-  });
 }
 
 function applyPreviewScale() {
