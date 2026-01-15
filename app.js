@@ -379,14 +379,15 @@ async function exportImages() {
   if (isElectron()) {
     showLoading(slides.length);
     try {
-      const slidesHtml = getSlidesHtml();
+      // 元のHTML全体を送る（スクリプトセクション含む）
+      const fullHtml = htmlInput.value.trim();
 
       // 進捗イベントをリッスン
       window.electronAPI.onCaptureProgress((data) => {
         updateLoading(data.current, data.total);
       });
 
-      const result = await window.electronAPI.captureSlides(slidesHtml, slides.length);
+      const result = await window.electronAPI.captureSlides(fullHtml, slides.length);
 
       if (result.success) {
         showToast(result.message);
@@ -436,13 +437,14 @@ async function exportPdf() {
   if (isElectron()) {
     showLoading(slides.length);
     try {
-      const slidesHtml = getSlidesHtml();
+      // 元のHTML全体を送る（スクリプトセクション含む）
+      const fullHtml = htmlInput.value.trim();
 
       window.electronAPI.onCaptureProgress((data) => {
         updateLoading(data.current, data.total);
       });
 
-      const result = await window.electronAPI.exportPdf(slidesHtml, slides.length);
+      const result = await window.electronAPI.exportPdf(fullHtml, slides.length);
 
       if (result.success) {
         showToast(result.message);
