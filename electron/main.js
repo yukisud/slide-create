@@ -72,6 +72,31 @@ ipcMain.handle('capture-slides', async (event, fullHtml, slideCount) => {
     // Wait for all resources to load
     await new Promise(resolve => setTimeout(resolve, 2000));
 
+    // Get the maximum size needed to capture all slides
+    const maxSize = await captureWindow.webContents.executeJavaScript(`
+      (function() {
+        const slides = document.querySelectorAll('.slide');
+        let maxWidth = 1280;
+        let maxHeight = 720;
+
+        slides.forEach(slide => {
+          const rect = slide.getBoundingClientRect();
+          // Get the right and bottom edges (position + size)
+          maxWidth = Math.max(maxWidth, Math.ceil(rect.right));
+          maxHeight = Math.max(maxHeight, Math.ceil(rect.bottom));
+        });
+
+        return { width: maxWidth, height: maxHeight };
+      })();
+    `);
+
+    // Resize capture window to accommodate all slides
+    captureWindow.setSize(maxSize.width, maxSize.height);
+    console.log('Capture window resized to:', maxSize.width, 'x', maxSize.height);
+
+    // Wait for window resize to complete
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     // Hide all slides except the one we're capturing
     for (let i = 0; i < slideCount; i++) {
       // Hide other slides and get the position of target slide
@@ -170,6 +195,31 @@ ipcMain.handle('export-pdf', async (event, fullHtml, slideCount) => {
 
     // Wait for all resources to load
     await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Get the maximum size needed to capture all slides
+    const maxSize = await captureWindow.webContents.executeJavaScript(`
+      (function() {
+        const slides = document.querySelectorAll('.slide');
+        let maxWidth = 1280;
+        let maxHeight = 720;
+
+        slides.forEach(slide => {
+          const rect = slide.getBoundingClientRect();
+          // Get the right and bottom edges (position + size)
+          maxWidth = Math.max(maxWidth, Math.ceil(rect.right));
+          maxHeight = Math.max(maxHeight, Math.ceil(rect.bottom));
+        });
+
+        return { width: maxWidth, height: maxHeight };
+      })();
+    `);
+
+    // Resize capture window to accommodate all slides
+    captureWindow.setSize(maxSize.width, maxSize.height);
+    console.log('Capture window resized to:', maxSize.width, 'x', maxSize.height);
+
+    // Wait for window resize to complete
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Hide all slides except the one we're capturing
     for (let i = 0; i < slideCount; i++) {
