@@ -93,6 +93,23 @@ ipcMain.handle('capture-slides', async (event, fullHtml, slideCount) => {
               slide.style.top = '0';
               slide.style.left = '0';
               slide.style.margin = '0';
+              slide.style.width = '1280px';
+              slide.style.transformOrigin = 'top left';
+
+              // Force layout calculation
+              slide.offsetHeight;
+
+              // Get actual height after layout
+              const actualHeight = slide.scrollHeight;
+
+              // If slide is taller than 720px, scale it down
+              if (actualHeight > 720) {
+                const scale = 720 / actualHeight;
+                slide.style.transform = 'scale(' + scale + ')';
+                console.log('Scaling slide ${i} from', actualHeight, 'to 720px, scale:', scale);
+              } else {
+                slide.style.minHeight = '720px';
+              }
             } else {
               slide.style.display = 'none';
             }
@@ -100,8 +117,8 @@ ipcMain.handle('capture-slides', async (event, fullHtml, slideCount) => {
         })();
       `);
 
-      // Wait for Chart.js to render
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for Chart.js to render and scaling to complete
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       // スクリーンショット取得
       const image = await captureWindow.webContents.capturePage({
@@ -192,6 +209,23 @@ ipcMain.handle('export-pdf', async (event, fullHtml, slideCount) => {
               slide.style.top = '0';
               slide.style.left = '0';
               slide.style.margin = '0';
+              slide.style.width = '1280px';
+              slide.style.transformOrigin = 'top left';
+
+              // Force layout calculation
+              slide.offsetHeight;
+
+              // Get actual height after layout
+              const actualHeight = slide.scrollHeight;
+
+              // If slide is taller than 720px, scale it down
+              if (actualHeight > 720) {
+                const scale = 720 / actualHeight;
+                slide.style.transform = 'scale(' + scale + ')';
+                console.log('Scaling slide ${i} from', actualHeight, 'to 720px, scale:', scale);
+              } else {
+                slide.style.minHeight = '720px';
+              }
             } else {
               slide.style.display = 'none';
             }
@@ -199,8 +233,8 @@ ipcMain.handle('export-pdf', async (event, fullHtml, slideCount) => {
         })();
       `);
 
-      // Wait for Chart.js to render
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for Chart.js to render and scaling to complete
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       const image = await captureWindow.webContents.capturePage({
         x: 0,
