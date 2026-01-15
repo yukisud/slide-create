@@ -231,15 +231,30 @@ function renderSlidesContent(slides, bodyScripts = []) {
     // すべてのスライドのスクリプト読み込みが完了後、body内のスクリプトを実行
     if (bodyScripts && bodyScripts.length > 0) {
       console.log('[DEBUG] All slides loaded, executing body scripts, count:', bodyScripts.length);
+
+      // 既存のChart.jsインスタンスを全て破棄
+      if (typeof Chart !== 'undefined' && Chart.instances) {
+        Object.keys(Chart.instances).forEach(key => {
+          const instance = Chart.instances[key];
+          if (instance && typeof instance.destroy === 'function') {
+            instance.destroy();
+          }
+        });
+        console.log('[DEBUG] Destroyed all existing Chart instances');
+      }
+
       bodyScripts.forEach((scriptData, idx) => {
         console.log('[DEBUG] Executing body script', idx);
         const newScript = document.createElement('script');
+
+        // スクリプトをIIFEでラップして変数スコープを分離
+        if (scriptData.textContent) {
+          newScript.textContent = `(function() { ${scriptData.textContent} })();`;
+        }
         if (scriptData.src) {
           newScript.src = scriptData.src;
         }
-        if (scriptData.textContent) {
-          newScript.textContent = scriptData.textContent;
-        }
+
         document.body.appendChild(newScript);
       });
     }
