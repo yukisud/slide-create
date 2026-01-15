@@ -74,42 +74,41 @@ ipcMain.handle('capture-slides', async (event, fullHtml, slideCount) => {
 
     // Hide all slides except the one we're capturing
     for (let i = 0; i < slideCount; i++) {
-      await captureWindow.webContents.executeJavaScript(`
+      // Hide other slides and get the position of target slide
+      const slideRect = await captureWindow.webContents.executeJavaScript(`
         (function() {
-          // Reset body styles for capture
-          document.body.style.display = 'block';
-          document.body.style.padding = '0';
-          document.body.style.margin = '0';
-          document.body.style.gap = '0';
-          document.body.style.overflow = 'hidden';
-          document.body.style.width = '1280px';
-          document.body.style.height = '720px';
-
           const slides = document.querySelectorAll('.slide');
+          let targetRect = null;
+
           slides.forEach((slide, index) => {
             if (index === ${i}) {
               slide.style.display = '';
-              slide.style.position = 'absolute';
-              slide.style.top = '0';
-              slide.style.left = '0';
-              slide.style.margin = '0';
-              slide.style.minHeight = '720px';
+              // Get actual position and size as displayed in preview
+              const rect = slide.getBoundingClientRect();
+              targetRect = {
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height
+              };
             } else {
               slide.style.display = 'none';
             }
           });
+
+          return targetRect;
         })();
       `);
 
       // Wait for Chart.js to render
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // スクリーンショット取得
+      // Capture the slide at its actual position and size (as in preview)
       const image = await captureWindow.webContents.capturePage({
-        x: 0,
-        y: 0,
-        width: 1280,
-        height: 720
+        x: Math.floor(slideRect.x),
+        y: Math.floor(slideRect.y),
+        width: Math.ceil(slideRect.width),
+        height: Math.ceil(slideRect.height)
       });
 
       // PNG保存
@@ -174,51 +173,67 @@ ipcMain.handle('export-pdf', async (event, fullHtml, slideCount) => {
 
     // Hide all slides except the one we're capturing
     for (let i = 0; i < slideCount; i++) {
-      await captureWindow.webContents.executeJavaScript(`
+      // Hide other slides and get the position of target slide
+      const slideRect = await captureWindow.webContents.executeJavaScript(`
         (function() {
-          // Reset body styles for capture
-          document.body.style.display = 'block';
-          document.body.style.padding = '0';
-          document.body.style.margin = '0';
-          document.body.style.gap = '0';
-          document.body.style.overflow = 'hidden';
-          document.body.style.width = '1280px';
-          document.body.style.height = '720px';
-
           const slides = document.querySelectorAll('.slide');
+          let targetRect = null;
+
           slides.forEach((slide, index) => {
             if (index === ${i}) {
               slide.style.display = '';
-              slide.style.position = 'absolute';
-              slide.style.top = '0';
-              slide.style.left = '0';
-              slide.style.margin = '0';
-              slide.style.minHeight = '720px';
+              // Get actual position and size as displayed in preview
+              const rect = slide.getBoundingClientRect();
+              targetRect = {
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height
+              };
             } else {
               slide.style.display = 'none';
             }
           });
+
+          return targetRect;
         })();
       `);
 
       // Wait for Chart.js to render
       await new Promise(resolve => setTimeout(resolve, 1500));
 
+      // Capture the slide at its actual position and size (as in preview)
       const image = await captureWindow.webContents.capturePage({
-        x: 0,
-        y: 0,
-        width: 1280,
-        height: 720
+        x: Math.floor(slideRect.x),
+        y: Math.floor(slideRect.y),
+        width: Math.ceil(slideRect.width),
+        height: Math.ceil(slideRect.height)
       });
 
       const pngData = image.toPNG();
       const pngImage = await pdfDoc.embedPng(pngData);
+
+      // Calculate aspect ratio to fit in 1280x720 PDF page
+      const slideAspect = slideRect.width / slideRect.height;
+      const pageAspect = 1280 / 720;
+
+      let pdfWidth = 1280;
+      let pdfHeight = 720;
+
+      if (slideAspect > pageAspect) {
+        // Slide is wider - fit to width
+        pdfHeight = 1280 / slideAspect;
+      } else {
+        // Slide is taller - fit to height
+        pdfWidth = 720 * slideAspect;
+      }
+
       const page = pdfDoc.addPage([1280, 720]);
       page.drawImage(pngImage, {
-        x: 0,
-        y: 0,
-        width: 1280,
-        height: 720
+        x: (1280 - pdfWidth) / 2,
+        y: (720 - pdfHeight) / 2,
+        width: pdfWidth,
+        height: pdfHeight
       });
 
       event.sender.send('capture-progress', { current: i + 1, total: slideCount });
