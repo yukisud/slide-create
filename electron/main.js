@@ -77,6 +77,7 @@ ipcMain.handle('capture-slides', async (event, fullHtml, slideCount) => {
       await captureWindow.webContents.executeJavaScript(`
         (function() {
           // Reset body styles for capture
+          document.body.style.display = 'block';
           document.body.style.padding = '0';
           document.body.style.margin = '0';
           document.body.style.gap = '0';
@@ -175,6 +176,7 @@ ipcMain.handle('export-pdf', async (event, fullHtml, slideCount) => {
       await captureWindow.webContents.executeJavaScript(`
         (function() {
           // Reset body styles for capture
+          document.body.style.display = 'block';
           document.body.style.padding = '0';
           document.body.style.margin = '0';
           document.body.style.gap = '0';
