@@ -76,10 +76,22 @@ ipcMain.handle('capture-slides', async (event, fullHtml, slideCount) => {
     for (let i = 0; i < slideCount; i++) {
       await captureWindow.webContents.executeJavaScript(`
         (function() {
+          // Reset body styles for capture
+          document.body.style.padding = '0';
+          document.body.style.margin = '0';
+          document.body.style.gap = '0';
+          document.body.style.overflow = 'hidden';
+          document.body.style.width = '1280px';
+          document.body.style.height = '720px';
+
           const slides = document.querySelectorAll('.slide');
           slides.forEach((slide, index) => {
             if (index === ${i}) {
               slide.style.display = '';
+              slide.style.position = 'absolute';
+              slide.style.top = '0';
+              slide.style.left = '0';
+              slide.style.margin = '0';
             } else {
               slide.style.display = 'none';
             }
@@ -162,10 +174,22 @@ ipcMain.handle('export-pdf', async (event, fullHtml, slideCount) => {
     for (let i = 0; i < slideCount; i++) {
       await captureWindow.webContents.executeJavaScript(`
         (function() {
+          // Reset body styles for capture
+          document.body.style.padding = '0';
+          document.body.style.margin = '0';
+          document.body.style.gap = '0';
+          document.body.style.overflow = 'hidden';
+          document.body.style.width = '1280px';
+          document.body.style.height = '720px';
+
           const slides = document.querySelectorAll('.slide');
           slides.forEach((slide, index) => {
             if (index === ${i}) {
               slide.style.display = '';
+              slide.style.position = 'absolute';
+              slide.style.top = '0';
+              slide.style.left = '0';
+              slide.style.margin = '0';
             } else {
               slide.style.display = 'none';
             }
